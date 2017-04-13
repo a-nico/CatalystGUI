@@ -20,9 +20,14 @@ namespace CatalystGUI
     /// </summary>
     public partial class MainWindow : Window
     {
+        CameraStuff cameraStuff;
+
         public MainWindow()
         {
             InitializeComponent();
+
+            cameraStuff = new CameraStuff(Dispatcher);
+
         }
     }
 }
