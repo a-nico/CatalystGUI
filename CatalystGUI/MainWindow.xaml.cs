@@ -25,9 +25,9 @@ namespace CatalystGUI
         public MainWindow()
         {
             InitializeComponent();
-
             cameraStuff = new CameraStuff(Dispatcher);
-
+            mainGrid.DataContext = cameraStuff;
+            cameraStuff.GetImage();
         }
     }
 }
