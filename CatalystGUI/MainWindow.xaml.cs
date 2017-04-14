@@ -26,8 +26,8 @@ namespace CatalystGUI
         {
             InitializeComponent();
             cameraStuff = new CameraStuff(Dispatcher);
-            mainGrid.DataContext = cameraStuff;
-            cameraStuff.GetImage();
+            CameraGrid.DataContext = cameraStuff; // every child in "Grid" gets properties from this object
+            //cameraStuff.GetImage();
         }
     }
 }

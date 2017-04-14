@@ -9,10 +9,10 @@ using SpinnakerNET.GenApi;
 
 namespace CatalystGUI
 {
-    // TO DO: impelment IDisposable interface, DeInit camera, clean up everything
+    // TO DO: implement IDisposable interface, DeInit() camera, clean up everything
     internal class CameraStuff : INotifyPropertyChanged
     {
-        #region Class Fields
+        #region Misc. Class Fields
         private IManagedCamera currentCam; // the blackfly
         private ManagedSystem spinnakerSystem; // spinnaker class
         private Dispatcher UIDispatcher; // invokes actions to run on UI thread
@@ -33,7 +33,7 @@ namespace CatalystGUI
         public CameraStuff(Dispatcher UIDispatcher)
         {
             this.UIDispatcher = UIDispatcher;
-            InitializeCamera();
+            //InitializeCamera();
         }
 
         // Camera initialization stuff:
@@ -49,14 +49,6 @@ namespace CatalystGUI
             currentCam.Init(); // don't know what this does
         }
 
-        #region PropertyChanged stuff
-        // call this method invokes event to update UI elements which use Binding
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected void NotifyPropertyChanged(string name)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-        }
-        #endregion
 
         // for now gets one image and puts it on UI using binding
         // should be made into a Task
@@ -153,6 +145,20 @@ namespace CatalystGUI
         }
         #endregion
 
+        #region Exposure Time
+        public uint ExposureTime
+        {
+            get
+            {
+                if (currentCam != null) return (uint)currentCam.ExposureTime.Value;
+                return 0;
+            }
+            set
+            {
+                SetExposure(value); // when loses focus, sets camera to what user inputed
+                NotifyPropertyChanged("ExposureTime"); // update UI box (calls get)
+            }
+        }
         public void SetExposure(uint micros)
         {
             try
@@ -166,17 +172,33 @@ namespace CatalystGUI
                 else if (micros < currentCam.ExposureTime.Min) // ~6 micros for blackfly
                 {
                     currentCam.ExposureTime.Value = currentCam.ExposureTime.Min;
-                } else
+                }
+                else
                 {
                     currentCam.ExposureTime.Value = micros;
                 }
             }
             catch (Exception e)
             {
-                System.Windows.MessageBox.Show("Exception throw in SetExposure(uint micros) method. Exception message: " + e.Message);
+                System.Windows.MessageBox.Show("Exception thrown in SetExposure(uint micros) method. Exception message: " + e.Message);
             }
         }
+        #endregion
 
+        #region Frame Rate
+        public double FrameRate
+        {
+            get // in future maybe do private/public pair to avoid long decimals
+            {
+                if (currentCam != null) return (uint)currentCam.AcquisitionFrameRate.Value;
+                return 0.0;
+            }
+            set
+            {
+                SetFramerate(value); // when loses focus, sets camera to what user inputed
+                NotifyPropertyChanged("FrameRate"); // update UI box (calls get)
+            }
+        }
         public void SetFramerate(double Hz)
         {
             try
@@ -205,5 +227,29 @@ namespace CatalystGUI
 
             }
         }
+        #endregion
+
+        #region Frame Count
+        private uint frameCount;
+        public uint FrameCount
+        {
+            get { return frameCount; }
+            set
+            {
+                frameCount = value;
+                NotifyPropertyChanged("FrameCount");
+            }
+        }
+        #endregion
+
+        #region PropertyChanged stuff
+        // call this method invokes event to update UI elements which use Binding
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected void NotifyPropertyChanged(string name)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        }
+        #endregion
+
     }
 }
