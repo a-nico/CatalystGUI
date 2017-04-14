@@ -6,22 +6,61 @@
         xmlns:local="clr-namespace:CatalystGUI"
         mc:Ignorable="d"
         Title="MainWindow" Height="350" Width="525">
-    <Grid x:Name="mainGrid">
+    <Window.Resources>
+        <!--<local:BooleanToNotConverter x:Key="BooleanToNotConverter"/>-->
+        <!--<local:MarginSetter x:Key="MarginSetter"/>-->
+        <Style TargetType="{x:Type TextBlock}">
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+        <Style TargetType="{x:Type TextBox}">
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+        <Style TargetType="{x:Type Button}">
+            <Setter Property="FontSize" Value="18"/>
+        </Style>
+    </Window.Resources>
+    <Grid x:Name="CameraGrid">
 
         <StackPanel Orientation="Vertical">
-            <StackPanel Orientation="Horizontal">
-                <!--<StackPanel.Resources>
+            <UniformGrid Rows="1">
+                <!--This resource stuff makes all children type Button have this property-->
+                <UniformGrid.Resources>
                     <Style TargetType="{x:Type Button}">
                         <Setter Property="Margin" Value="5,0,5,0"/>
                     </Style>
-                </StackPanel.Resources>-->
+                </UniformGrid.Resources>
                 <Button Content="Live"/>
                 <Button Content="Stop"/>
                 <Button Content="Capture"/>
-                <TextBox Width="80pt"/>
+                <TextBox Width="100pt"/>
                 <Button Content="Save"/>
-        </StackPanel>
+            </UniformGrid>
+            <!--Labels for control boxes-->
+            <UniformGrid Rows="1" Margin="0,5,0,0">
+                <TextBlock Text="Exposure (micros)" TextAlignment="Center"/>
+                <TextBlock Text="Frame Rate (Hz)" TextAlignment="Center"/>
+                <TextBlock Text="Frame Count" TextAlignment="Center"/>
+            </UniformGrid>
+            <!--Boxes with +/- buttons-->
+            <UniformGrid Rows="1">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button Content="-" Width="20"/>
+                    <TextBox Width="70pt"/>
+                    <Button Content="+" Width="20"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button Content="-" Width="20"/>
+                    <TextBox Width="70pt"/>
+                    <Button Content="+" Width="20"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button Content="-" Width="20"/>
+                    <TextBox Width="70pt"/>
+                    <Button Content="+" Width="20"/>
+                </StackPanel>
+            </UniformGrid>
             <Image Name ="imageBox" Source="{Binding UIimage}"/>
         </StackPanel>
+        
     </Grid>
 </Window>
