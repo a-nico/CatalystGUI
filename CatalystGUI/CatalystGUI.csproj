@@ -5,7 +5,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{09D6AB03-0770-48A8-9DE7-B293F53440A7}</ProjectGuid>
-    <OutputType>WinExe</OutputType>
+    <OutputType>Exe</OutputType>
     <RootNamespace>CatalystGUI</RootNamespace>
     <AssemblyName>CatalystGUI</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
@@ -53,6 +53,9 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="SpinnakerNETd_v140, Version=1.0.0.373, Culture=neutral, PublicKeyToken=e3ed2bf1f221d241, processorArchitecture=AMD64">
       <SpecificVersion>False</SpecificVersion>
@@ -87,6 +90,8 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="CameraStuff.cs" />
+    <Compile Include="Spacing.cs" />
+    <Compile Include="MarginSetter.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
