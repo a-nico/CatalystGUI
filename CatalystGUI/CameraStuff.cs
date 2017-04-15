@@ -23,7 +23,7 @@ namespace CatalystGUI
             set
             {
                 _UIimage = value;
-                NotifyPropertyChanged("DisplayImage");
+                NotifyPropertyChanged("UIimage");
             }
 
         }
@@ -33,12 +33,11 @@ namespace CatalystGUI
         public CameraStuff(Dispatcher UIDispatcher)
         {
             this.UIDispatcher = UIDispatcher;
-            //InitializeCamera();
+            InitializeCamera();
         }
 
-        // Camera initialization stuff:
         public void InitializeCamera()
-        {
+        { // call only once
             spinnakerSystem = new ManagedSystem();
             // get list of cams plugged in:
             {
@@ -49,6 +48,15 @@ namespace CatalystGUI
             currentCam.Init(); // don't know what this does
         }
 
+        // gets called when "Capture" UI button is clicked
+        public void Capture()
+        {
+            SetAcqusitionMode(AcquisitionMode.Single, 1);// FrameCount);
+            currentCam.BeginAcquisition();
+            var rawImage = currentCam.GetNextImage();
+            UIimage = ConvertRawToBitmapSource(rawImage); // automatically notifies UI
+            currentCam.EndAcquisition();
+        }
 
         // for now gets one image and puts it on UI using binding
         // should be made into a Task
@@ -72,38 +80,13 @@ namespace CatalystGUI
             for (int k = 0; k < numFrames; k++)
             {
                 Console.WriteLine(rawImage[k].TimeStamp - t0);
-                rawImage[k].Save(String.Format("C:\\Users\\Bubble\\Pictures\\Raw{0}.bmp", k)); // don't need to convert to Mono8
+                //rawImage[k].Save(String.Format("C:\\Users\\Bubble\\Pictures\\Raw{0}.bmp", k)); // don't need to convert to Mono8
                 
                 //UIimage = ConvertRawToBitmapSource(rawImage[k]); // convert raw image to bitmap, then set the class property for the UI
             }
 
             currentCam.EndAcquisition(); // end AFTER messing with IManagedImage rawimage or else throws that werid corrupt memory exception
 
-            
-
-        }
-
-        // convert raw image (IManagedImage) to BitmapSource
-        private BitmapSource ConvertRawToBitmapSource(IManagedImage rawImage)
-        {
-            // convert and copy raw bytes into compatible image type
-            using (IManagedImage convertedImage = rawImage.Convert(PixelFormatEnums.Mono8))
-            {
-                byte[] bytes = convertedImage.ManagedData;
-
-                System.Windows.Media.PixelFormat format = System.Windows.Media.PixelFormats.Gray8;
-
-                return BitmapSource.Create(
-                        (int)rawImage.Width,
-                        (int)rawImage.Height,
-                        96d,
-                        96d,
-                        format,
-                        null,
-                        bytes,
-                        ((int)rawImage.Width * format.BitsPerPixel + 7) / 8
-                        );
-            }
         }
 
         #region Acquisition Mode
@@ -241,6 +224,29 @@ namespace CatalystGUI
             }
         }
         #endregion
+
+        // convert raw image (IManagedImage) to BitmapSource
+        private BitmapSource ConvertRawToBitmapSource(IManagedImage rawImage)
+        {
+            // convert and copy raw bytes into compatible image type
+            using (IManagedImage convertedImage = rawImage.Convert(PixelFormatEnums.Mono8))
+            {
+                byte[] bytes = convertedImage.ManagedData;
+
+                System.Windows.Media.PixelFormat format = System.Windows.Media.PixelFormats.Gray8;
+
+                return BitmapSource.Create(
+                        (int)rawImage.Width,
+                        (int)rawImage.Height,
+                        96d,
+                        96d,
+                        format,
+                        null,
+                        bytes,
+                        ((int)rawImage.Width * format.BitsPerPixel + 7) / 8
+                        );
+            }
+        }
 
         #region PropertyChanged stuff
         // call this method invokes event to update UI elements which use Binding

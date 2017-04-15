@@ -5,15 +5,15 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:CatalystGUI"
         mc:Ignorable="d"
-        Title="Catalyst Project (Confidential)" Height="350" Width="525">
+        Title="Catalyst Project (Confidential)" Height="780" Width="840">
     <Window.Resources>
         <!--<local:BooleanToNotConverter x:Key="BooleanToNotConverter"/>-->
         <!--<local:MarginSetter x:Key="MarginSetter"/>-->
         <Style TargetType="{x:Type TextBlock}">
-            <Setter Property="FontSize" Value="12pt"/>
+            <Setter Property="FontSize" Value="10pt"/>
         </Style>
         <Style TargetType="{x:Type TextBox}">
-            <Setter Property="FontSize" Value="12pt"/>
+            <Setter Property="FontSize" Value="10pt"/>
         </Style>
         <Style TargetType="{x:Type Button}">
             <Setter Property="FontSize" Value="12pt"/>
@@ -32,7 +32,7 @@
                 </UniformGrid.Resources>
                 <Button Content="Live"/>
                 <Button Content="Stop"/>
-                <Button Content="Capture"/>
+                <Button Content="Capture" Click="Capture"/>
                 <TextBox Text="{Binding FolderPath}"/>
                 <Button Content="Save"/>
             </UniformGrid>
@@ -45,22 +45,22 @@
             <!--Boxes with +/- buttons-->
             <UniformGrid Rows="1">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                    <Button Content="-" Width="20" Click="Button_Click"/>
+                    <Button Content="-" Width="20" Click="ExposureMinus"/>
                     <TextBox Width="70pt" Text="{Binding ExposureTime}"/>
-                    <Button Content="+" Width="20"/>
+                    <Button Content="+" Width="20" Click="ExposurePlus"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                    <Button Content="-" Width="20"/>
+                    <Button Content="-" Width="20" Click="FrameRateMinus"/>
                     <TextBox Width="70pt" Text="{Binding FrameRate}"/>
-                    <Button Content="+" Width="20"/>
+                    <Button Content="+" Width="20" Click="FrameRatePlus"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                    <Button Content="-" Width="20"/>
+                    <Button Content="-" Width="20" Click="FrameCountMinus"/>
                     <TextBox Width="70pt" Text="{Binding FrameCount}"/>
-                    <Button Content="+" Width="20"/>
+                    <Button Content="+" Width="20" Click="FrameCountPlus"/>
                 </StackPanel>
             </UniformGrid>
-            <Image Name ="imageBox" Source="{Binding UIimage}"/>
+            <Image Name ="imageBox" Source="{Binding UIimage}" Margin="5"/> <!-- Width="1280px" Height="1024px"/> -->
         </StackPanel>
         
     </Grid>
