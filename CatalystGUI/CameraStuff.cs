@@ -27,7 +27,7 @@ namespace CatalystGUI
             }
 
         }
-        private bool LiveMode; // live mode or frame capture on UI
+        public bool liveMode; // live mode or frame capture on UI
         # endregion
 
         public CameraStuff(Dispatcher UIDispatcher)
@@ -46,6 +46,21 @@ namespace CatalystGUI
                 else currentCam = camList[0]; // get the first one
             } // camlist is garbage collected
             currentCam.Init(); // don't know what this does
+        }
+
+        // Called when Live button is clicked. Should run as task
+        public void Live()
+        {
+            SetAcqusitionMode(AcquisitionMode.Continuous, 0);
+            currentCam.BeginAcquisition();
+            liveMode = true;
+
+            while (liveMode)
+            {
+                UIimage = ConvertRawToBitmapSource(currentCam.GetNextImage());
+            }
+            
+            currentCam.EndAcquisition();
         }
 
         // gets called when "Capture" UI button is clicked

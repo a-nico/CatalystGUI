@@ -27,12 +27,12 @@
                 <UniformGrid.Resources>
                     <Style TargetType="{x:Type Button}">
                         <Setter Property="Margin" Value="5,0,5,0"/>
-                        <!--<Setter Property="Height" Value="20px"/>--> 
+                        <!--<Setter Property="Height" Value="20px"/>-->
                     </Style>
                 </UniformGrid.Resources>
-                <Button Content="Live"/>
-                <Button Content="Stop"/>
-                <Button Content="Capture" Click="Capture"/>
+                <Button Content="Live" Click="Live"/>
+                <Button Content="Stop" Click="Stop"/>
+                <Button Content="Capture" Click="Capture" Name="CaptureButton"/>
                 <TextBox Text="{Binding FolderPath}"/>
                 <Button Content="Save"/>
             </UniformGrid>
@@ -60,8 +60,23 @@
                     <Button Content="+" Width="20" Click="FrameCountPlus"/>
                 </StackPanel>
             </UniformGrid>
-            <Image Name ="imageBox" Source="{Binding UIimage}" Margin="5"/> <!-- Width="1280px" Height="1024px"/> -->
+            <Image Name ="imageBox" Source="{Binding UIimage}" Margin="5"/>
+            <!--Thumbnail list row: ListBox. Somehow binded to main image -->
+            <!--If running into problems, switch to grid-->
+            <ListBox ItemsSource="{Binding Frames}"  Height="100" Grid.Row="2" SelectedItem="{Binding CurrentFrame}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Image Source="{Binding UIimage}" MaxHeight="50"/>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ListBox>
+            <!-- Width="1280px" Height="1024px"/> -->
         </StackPanel>
-        
+
     </Grid>
 </Window>
