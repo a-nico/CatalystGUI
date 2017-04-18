@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
@@ -28,7 +29,6 @@ namespace CatalystGUI
             }
 
         }
-        public bool liveMode; // live mode or frame capture on UI
         # endregion
 
         public CameraStuff(Dispatcher UIDispatcher)
@@ -50,6 +50,7 @@ namespace CatalystGUI
         }
 
         // Called when Live button is clicked. Should run as task
+        public bool liveMode; // live mode or frame capture on UI
         public void Live()
         {
             SetAcqusitionMode(AcquisitionMode.Continuous, 0);
@@ -84,31 +85,16 @@ namespace CatalystGUI
         // should be made into a Task
         public void GetImage()
         {
-            uint numFrames = 4;
-            SetAcqusitionMode(AcquisitionMode.Multi, numFrames); // maybe allow client to call this method
+            Task.Run(() =>
+           {
+               SetAcqusitionMode(AcquisitionMode.Single, 0); // maybe allow client to call this method
 
-            currentCam.BeginAcquisition(); // need to start this every time
-            IManagedImage[] rawImage = new IManagedImage[numFrames];
-            for (int k = 0; k < numFrames; k++)
-            {
-                rawImage[k] = currentCam.GetNextImage();
-                //rawImage[k].Save(String.Format("C:\\Users\\Bubble\\Pictures\\Raw{0}.bmp", k)); // don't need to convert to Mono8
-                //UIimage = ConvertRawToBitmapSource(rawImage[k]); // convert raw image to bitmap, then set the class property for the UI
-            }
+                currentCam.BeginAcquisition(); // need to start this every time
+                UIimage = ConvertRawToBitmapSource(currentCam.GetNextImage());
 
-            // get time stamps
-            //long[] timeStamps = new long[numFrames];
-            ulong t0 = rawImage[0].TimeStamp;
-            for (int k = 0; k < numFrames; k++)
-            {
-                Console.WriteLine(rawImage[k].TimeStamp - t0);
-                //rawImage[k].Save(String.Format("C:\\Users\\Bubble\\Pictures\\Raw{0}.bmp", k)); // don't need to convert to Mono8
-                
-                //UIimage = ConvertRawToBitmapSource(rawImage[k]); // convert raw image to bitmap, then set the class property for the UI
-            }
 
-            currentCam.EndAcquisition(); // end AFTER messing with IManagedImage rawimage or else throws that werid corrupt memory exception
-
+               currentCam.EndAcquisition(); // end AFTER messing with IManagedImage rawimage or else throws that werid corrupt memory exception
+            });
         }
 
         #region Acquisition Mode

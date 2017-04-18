@@ -64,28 +64,24 @@ namespace CatalystGUI
         }
         #endregion
 
-        private void Capture(object sender, RoutedEventArgs e)
+        private void Capture_Click(object sender, RoutedEventArgs e)
         {
             //CaptureButton.IsEnabled = false; // don't know how to re-enable through binding
             cameraStuff.Capture();
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
+        private void Live_Click(object sender, RoutedEventArgs e)
         {
+            cameraStuff.GetImage();
+            //if (!cameraStuff.liveMode)
+            //{
+            //    // Let live acquisition run on different thread
+            //    Task.Run(new Action(cameraStuff.Live));
+            //}
 
         }
 
-        private void Live(object sender, RoutedEventArgs e)
-        {
-            if (!cameraStuff.liveMode)
-            {
-            // Let live acquisition run on different thread
-            Task.Run(new Action (cameraStuff.Live));
-            }
-
-        }
-
-        private void Stop(object sender, RoutedEventArgs e)
+        private void Stop_Click(object sender, RoutedEventArgs e)
         {
             cameraStuff.liveMode = false;
         }

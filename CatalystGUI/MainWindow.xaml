@@ -7,9 +7,7 @@
         mc:Ignorable="d"
         Title="Catalyst Project (Confidential)" Height="780" Width="840">
     <Window.Resources>
-        <!--<local:BooleanToNotConverter x:Key="BooleanToNotConverter"/>-->
-        <!--<local:MarginSetter x:Key="MarginSetter"/>-->
-        <Style TargetType="{x:Type TextBlock}">
+        <!--<Style TargetType="{x:Type TextBlock}">
             <Setter Property="FontSize" Value="10pt"/>
         </Style>
         <Style TargetType="{x:Type TextBox}">
@@ -17,96 +15,91 @@
         </Style>
         <Style TargetType="{x:Type Button}">
             <Setter Property="FontSize" Value="12pt"/>
-        </Style>
+        </Style>-->
     </Window.Resources>
-    
-    <StackPanel Orientation="Vertical">
-        <Grid>
+
+
+    <Grid Name="CameraGrid">
+        <!--Main grid that holds everything in rows-->
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+
+        </Grid.RowDefinitions>
+
+        <!--Holds the row of live,stop,capture,commandline elements in columns-->
+        <Grid Grid.Row="0">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="2*" />
-                <ColumnDefinition Width="3*" />
+                <ColumnDefinition Width="1*" />
+                <ColumnDefinition Width="1*" />
+                <ColumnDefinition Width="1*" />
                 <ColumnDefinition Width="3*" />
             </Grid.ColumnDefinitions>
 
-            <Button Content="Live" Click="Live"/>
-            <Button Content="Stop" Click="Stop"/>
-            <Button Content="+" Width="20" Click="ExposurePlus"/>
-
+            <Button Grid.Column="0" Content="Live" Click="Live_Click"/>
+            <Button Grid.Column="1" Content="Stop" Click="Stop_Click"/>
+            <Button Grid.Column="2" Content="Capture" Click="Capture_Click" Name="CaptureButton"/>
+            <TextBox Grid.Column="3" Text="{Binding FolderPath}"/>
         </Grid>
 
-        <StackPanel Orientation="Vertical">
-            <UniformGrid Rows="1" Height="30">
-                <!--This resource stuff makes all children of type Button have this property-->
-                <UniformGrid.Resources>
-                    <Style TargetType="{x:Type Button}">
-                        <Setter Property="Margin" Value="5,0,5,0"/>
-                        <!--<Setter Property="Height" Value="20px"/>-->
-                    </Style>
-                </UniformGrid.Resources>
-                <Button Content="Live" Click="Live"/>
-                <Button Content="Stop" Click="Stop"/>
-                <Button Content="Capture" Click="Capture" Name="CaptureButton"/>
-                <TextBox Text="{Binding FolderPath}"/>
-            </UniformGrid>
-            
-            <!--Camera settings buttons-->
-            <UniformGrid Rows="1">
-                <StackPanel Orientation="Vertical">
-                    <!--label-->
-                    <TextBlock Text="Exposure (micros)" TextAlignment="Center"/>
-                    <!--controls-->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <Button Content="-" Width="20" Click="ExposureMinus"/>
-                        <TextBox Width="70pt" Text="{Binding ExposureTime}"/>
-                        <Button Content="+" Width="20" Click="ExposurePlus"/>
-                    </StackPanel>
+        <!--Each control is a vertical StackPanel of label/controls. Controls is [-][textbox][+]-->
+        <UniformGrid Rows="1" Grid.Row="1">
+            <StackPanel Orientation="Vertical">
+                <!--label-->
+                <TextBlock Text="Exposure (micros)" TextAlignment="Center"/>
+                <!--controls-->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button Content="-" Width="20" Click="ExposureMinus"/>
+                    <TextBox Width="70pt" Text="{Binding ExposureTime}"/>
+                    <Button Content="+" Width="20" Click="ExposurePlus"/>
                 </StackPanel>
+            </StackPanel>
 
-                <StackPanel Orientation="Vertical">
-                    <!--label-->
-                    <TextBlock Text="Frame Rate (Hz)" TextAlignment="Center"/>
-                    <!--controls-->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <Button Content="-" Width="20" Click="FrameRateMinus"/>
-                        <TextBox Width="70pt" Text="{Binding FrameRate}"/>
-                        <Button Content="+" Width="20" Click="FrameRatePlus"/>
-                    </StackPanel>
+            <StackPanel Orientation="Vertical">
+                <!--label-->
+                <TextBlock Text="Frame Rate (Hz)" TextAlignment="Center"/>
+                <!--controls-->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button Content="-" Width="20" Click="FrameRateMinus"/>
+                    <TextBox Width="70pt" Text="{Binding FrameRate}"/>
+                    <Button Content="+" Width="20" Click="FrameRatePlus"/>
                 </StackPanel>
+            </StackPanel>
 
-                <StackPanel Orientation="Vertical">
-                    <!--label-->
-                    <TextBlock Text="Frame Count" TextAlignment="Center"/>
-                    <!--controls-->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <Button Content="-" Width="20" Click="FrameCountMinus"/>
-                        <TextBox Width="70pt" Text="{Binding FrameCount}"/>
-                        <Button Content="+" Width="20" Click="FrameCountPlus"/>
-                    </StackPanel>
+            <StackPanel Orientation="Vertical">
+                <!--label-->
+                <TextBlock Text="Frame Count" TextAlignment="Center"/>
+                <!--controls-->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button Content="-" Width="20" Click="FrameCountMinus"/>
+                    <TextBox Width="70pt" Text="{Binding FrameCount}"/>
+                    <Button Content="+" Width="20" Click="FrameCountPlus"/>
                 </StackPanel>
-            </UniformGrid>
-            
-            <Image Name ="imageBox" Source="{Binding UIimage}" Margin="5"/>
-            <!--If running into problems, switch to grid-->
-            <!--sam: the "selected item" binds the object selected (calls "set") to a property in the context inherited by ListBox-->
-            <ListBox ItemsSource="{Binding Thumbnails}" SelectedItem="{Binding UIimage}"  Height="100">
-                <!--sam: once inside here, the context gets updated to the objects inside the listbox. If you want to bind to the object itself use
-            the {Binding .}, else use the property name straight up. E.g. if listbox has inside a object containing "string txt" you can do
-            {Binding txt} and it will show the text-->
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <Image Source="{Binding .}" MaxHeight="50"/>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
+            </StackPanel>
+        </UniformGrid>
 
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
+        <!--Big UI Image-->
+        <Image Name ="imageBox" Source="{Binding UIimage}" Margin="5" Grid.Row="2"/>
 
-            </ListBox>
-            <!-- Width="1280px" Height="1024px"/> -->
-        </StackPanel>
+        <!--sam: the "selected item" binds the object selected (calls "set") to a property in the context inherited by ListBox-->
+        <ListBox ItemsSource="{Binding Thumbnails}" SelectedItem="{Binding UIimage}"  Height="100" Grid.Row="3">
+            <!--sam: once inside here, the context gets updated to the objects inside the listbox. If you want to bind to the object itself use
+        the {Binding .}, else use the property name straight up. E.g. if listbox has inside a object containing "string txt" you can do
+        {Binding txt} and it will show the text-->
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Image Source="{Binding .}" MaxHeight="50"/>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
 
-    </StackPanel>
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+
+        </ListBox>
+    </Grid>
 </Window>
