@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -17,9 +18,9 @@ namespace CatalystGUI
         private ManagedSystem spinnakerSystem; // spinnaker class
         private Dispatcher UIDispatcher; // invokes actions to run on UI thread
         // this is the pic that gets posted on the UI:
-        private ImageSource _UIimage;  public ImageSource UIimage
+        private ImageSource _UIimage; public ImageSource UIimage
         {
-            get{ return _UIimage; }
+            get { return _UIimage; }
             set
             {
                 _UIimage = value;
@@ -59,17 +60,23 @@ namespace CatalystGUI
             {
                 UIimage = ConvertRawToBitmapSource(currentCam.GetNextImage());
             }
-            
+
             currentCam.EndAcquisition();
         }
 
         // gets called when "Capture" UI button is clicked
+        public ObservableCollection<ImageSource> ImageSourceFrames { get; set; }
         public void Capture()
         {
-            SetAcqusitionMode(AcquisitionMode.Single, 1);// FrameCount);
+            SetAcqusitionMode(AcquisitionMode.Multi, FrameCount);
             currentCam.BeginAcquisition();
-            var rawImage = currentCam.GetNextImage();
-            UIimage = ConvertRawToBitmapSource(rawImage); // automatically notifies UI
+
+            // grab image from camera, convert to ImageSource, add to collection which is Bind to listbox
+            for (int k = 0; k < FrameCount; k++)
+            {
+                ImageSourceFrames.Add(ConvertRawToBitmapSource(currentCam.GetNextImage()));
+            }
+            UIimage = ImageSourceFrames[0]; // put first one on screen
             currentCam.EndAcquisition();
         }
 
