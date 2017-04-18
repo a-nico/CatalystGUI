@@ -53,17 +53,31 @@ namespace CatalystGUI
         public bool liveMode; // live mode or frame capture on UI
         public void Live()
         {
-            SetAcqusitionMode(AcquisitionMode.Continuous, 0);
-            currentCam.BeginAcquisition();
-            liveMode = true;
-
-            while (liveMode)
+            Task.Run(() =>
             {
-                UIimage = ConvertRawToBitmapSource(currentCam.GetNextImage());
-            }
 
-            currentCam.EndAcquisition();
+                // updating UI image has to be done on UI thread. Use Dispatcher
+                UIDispatcher.BeginInvoke(new Action(() =>
+                {
+
+                    SetAcqusitionMode(AcquisitionMode.Continuous, 0);
+                    currentCam.BeginAcquisition();
+                    liveMode = true;
+
+                    while (liveMode)
+                    //for (int k = 0; k < 10; k++)
+                    {
+                        UIimage = ConvertRawToBitmapSource(currentCam.GetNextImage());
+                    }
+                    currentCam.EndAcquisition();
+
+                }));
+
+            });
+
         }
+
+
 
         // gets called when "Capture" UI button is clicked
         public ObservableCollection<ImageSource> ImageSourceFrames { get; set; }
@@ -85,16 +99,17 @@ namespace CatalystGUI
         // should be made into a Task
         public void GetImage()
         {
-            Task.Run(() =>
-           {
-               SetAcqusitionMode(AcquisitionMode.Single, 0); // maybe allow client to call this method
+            SetAcqusitionMode(AcquisitionMode.Single, 0); // maybe allow client to call this method
+            currentCam.BeginAcquisition(); // need to start this every time
+            var image = ConvertRawToBitmapSource(currentCam.GetNextImage());
+            // updating UI image has to be done on UI thread. Use Dispatcher
+            UIDispatcher.Invoke( () =>
+                {
+                    UIimage = image;
+                });
 
-                currentCam.BeginAcquisition(); // need to start this every time
-                UIimage = ConvertRawToBitmapSource(currentCam.GetNextImage());
+            currentCam.EndAcquisition(); // end AFTER messing with IManagedImage rawimage or else throws that werid corrupt memory exception
 
-
-               currentCam.EndAcquisition(); // end AFTER messing with IManagedImage rawimage or else throws that werid corrupt memory exception
-            });
         }
 
         #region Acquisition Mode

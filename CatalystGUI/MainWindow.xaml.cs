@@ -72,13 +72,17 @@ namespace CatalystGUI
 
         private void Live_Click(object sender, RoutedEventArgs e)
         {
-            cameraStuff.GetImage();
+            Task.Run(() => cameraStuff.GetImage());
             //if (!cameraStuff.liveMode)
             //{
-            //    // Let live acquisition run on different thread
-            //    Task.Run(new Action(cameraStuff.Live));
-            //}
 
+            //    cameraStuff.Live();
+            //    //cameraStuff.Live();
+            //    //// Let live acquisition run on different thread
+            //    //Task.Run( () => {
+            //    //    cameraStuff.Live();
+            //    //});
+            //}
         }
 
         private void Stop_Click(object sender, RoutedEventArgs e)
