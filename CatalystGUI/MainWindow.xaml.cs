@@ -22,9 +22,10 @@ namespace CatalystGUI
         public MainWindow()
         {
             InitializeComponent();
-            cameraStuff = new CameraStuff(Dispatcher);
-            CameraGrid.DataContext = cameraStuff; // every child in "Grid" gets properties from this object
-            //cameraStuff.GetImage();
+            LiveButton.IsEnabled = false;
+            StopButton.IsEnabled = false;
+            CaptureButton.IsEnabled = false;
+
         }
 
 
@@ -64,6 +65,7 @@ namespace CatalystGUI
         }
         #endregion
 
+        #region Buttons: Capture, Live, Stop, Start Cam
         private void Capture_Click(object sender, RoutedEventArgs e)
         {
             //CaptureButton.IsEnabled = false; // don't know how to re-enable through binding
@@ -82,5 +84,19 @@ namespace CatalystGUI
         {
             cameraStuff.liveMode = false;
         }
+
+        // starts camera that way it won't happen right when UI starts
+        private void StartCam_Click(object sender, RoutedEventArgs e)
+        {
+            cameraStuff = new CameraStuff(Dispatcher);
+            CameraGrid.DataContext = cameraStuff; // every child in "Grid" gets properties from this object
+
+            StartCamButton.IsEnabled = false;
+            LiveButton.IsEnabled = true;
+            StopButton.IsEnabled = true;
+            CaptureButton.IsEnabled = true;
+        }
+
+        #endregion
     }
 }
