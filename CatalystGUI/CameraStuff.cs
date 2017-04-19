@@ -34,6 +34,13 @@ namespace CatalystGUI
         public CameraStuff(Dispatcher UIDispatcher)
         {
             this.UIDispatcher = UIDispatcher;
+
+            // create collecton on UI thread so I won't have any problems with scope BS
+            UIDispatcher.BeginInvoke( new Action( () => 
+            {
+                imageSourceFrames = new ObservableCollection<ImageSource>();
+            }));
+            
             InitializeCamera();
         }
 
@@ -53,62 +60,93 @@ namespace CatalystGUI
         public bool liveMode; // live mode or frame capture on UI
         public void Live()
         {
+            SetAcqusitionMode(AcquisitionMode.Continuous, 0);
+            currentCam.BeginAcquisition();
+            liveMode = true;
+
             Task.Run(() =>
             {
-
-                // updating UI image has to be done on UI thread. Use Dispatcher
-                UIDispatcher.BeginInvoke(new Action(() =>
+                while (liveMode)
                 {
-
-                    SetAcqusitionMode(AcquisitionMode.Continuous, 0);
-                    currentCam.BeginAcquisition();
-                    liveMode = true;
-
-                    while (liveMode)
-                    //for (int k = 0; k < 10; k++)
+                    // if don't use "using" the frame freezes
+                    using (var rawImage = currentCam.GetNextImage())
                     {
-                        UIimage = ConvertRawToBitmapSource(currentCam.GetNextImage());
+                        // updating UI image has to be done on UI thread. Use Dispatcher
+                        UIDispatcher.Invoke(new Action(() =>
+                        {
+                            UIimage = ConvertRawToBitmapSource(rawImage);
+                        }));
                     }
-                    currentCam.EndAcquisition();
+                }
 
-                }));
-
+                currentCam.EndAcquisition();
             });
-
         }
 
 
-
         // gets called when "Capture" UI button is clicked
-        public ObservableCollection<ImageSource> ImageSourceFrames { get; set; }
+
+        private ObservableCollection<ImageSource> imageSourceFrames;
+        public ObservableCollection<ImageSource> ImageSourceFrames
+        {
+            get
+            {
+                return imageSourceFrames;
+            }
+
+            set
+            {
+                imageSourceFrames = value;
+                NotifyPropertyChanged("ImageSourceFrames");
+            }
+        }
         public void Capture()
         {
+            imageSourceFrames.Clear();
             SetAcqusitionMode(AcquisitionMode.Multi, FrameCount);
             currentCam.BeginAcquisition();
 
             // grab image from camera, convert to ImageSource, add to collection which is Bind to listbox
-            for (int k = 0; k < FrameCount; k++)
+            for (uint k = 0; k < FrameCount; k++)
             {
-                ImageSourceFrames.Add(ConvertRawToBitmapSource(currentCam.GetNextImage()));
+                using (var rawImage = currentCam.GetNextImage())
+                {
+                    imageSourceFrames.Add(ConvertRawToBitmapSource(rawImage));
+                    // doesn't work: 
+                    //NotifyPropertyChanged("ImageSourceFrames"); // if I wanna see them come in real time
+                }
             }
-            UIimage = ImageSourceFrames[0]; // put first one on screen
+            UIimage = imageSourceFrames[0]; // put first one on screen
             currentCam.EndAcquisition();
+            // ImageSourceFrames = imageSourceFrames;
+            // why do I see them coming in? Who notifies it?
         }
 
-        // for now gets one image and puts it on UI using binding
         // should be made into a Task
         public void GetImage()
         {
-            SetAcqusitionMode(AcquisitionMode.Single, 0); // maybe allow client to call this method
-            currentCam.BeginAcquisition(); // need to start this every time
-            var image = ConvertRawToBitmapSource(currentCam.GetNextImage());
-            // updating UI image has to be done on UI thread. Use Dispatcher
-            UIDispatcher.Invoke( () =>
-                {
-                    UIimage = image;
-                });
+            IManagedImage rawImage = null;
+            Task task1 = new Task(() =>
+            {
+                SetAcqusitionMode(AcquisitionMode.Single, 0); // maybe allow client to call this method
+                currentCam.BeginAcquisition(); // need to start this every time
 
-            currentCam.EndAcquisition(); // end AFTER messing with IManagedImage rawimage or else throws that werid corrupt memory exception
+                rawImage = currentCam.GetNextImage();
+                //convertedImage = ConvertRawToBitmapSource(rawImage);
+                // updating UI image has to be done on UI thread. Use Dispatcher
+                //    UIDispatcher.Invoke(() => {
+                //        SetUIimage();
+                //    });
+
+                //    currentCam.EndAcquisition(); // end AFTER messing with IManagedImage rawimage or else throws that werid corrupt memory exception
+            });
+
+            task1.Start();
+            task1.Wait();
+
+            // now back to UI thread no?
+            rawImage.Save("C:/afterTask.bmp");
+            //ImageSource thing = new ImageSource(convertedImage);
 
         }
 
@@ -144,7 +182,7 @@ namespace CatalystGUI
                     // set burst
                     IInteger frameCount = nodeMap.GetNode<IInteger>("AcquisitionFrameCount");
                     frameCount.Value = numFrames;
-                    break; // to do
+                    break;
                 }
 
             }
@@ -239,7 +277,10 @@ namespace CatalystGUI
         private uint frameCount;
         public uint FrameCount
         {
-            get { return frameCount; }
+            get
+            {
+                return frameCount < 2 ? 2 : frameCount; // can't be <2 for MultiFrame mode
+            }
             set
             {
                 frameCount = value;

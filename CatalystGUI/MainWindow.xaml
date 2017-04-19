@@ -84,13 +84,13 @@
         <Image Name ="imageBox" Source="{Binding UIimage}" Margin="5" Grid.Row="2"/>
 
         <!--sam: the "selected item" binds the object selected (calls "set") to a property in the context inherited by ListBox-->
-        <ListBox ItemsSource="{Binding Thumbnails}" SelectedItem="{Binding UIimage}"  Height="100" Grid.Row="3">
+        <ListBox ItemsSource="{Binding ImageSourceFrames}" SelectedItem="{Binding UIimage}"  Height="110" Grid.Row="3">
             <!--sam: once inside here, the context gets updated to the objects inside the listbox. If you want to bind to the object itself use
         the {Binding .}, else use the property name straight up. E.g. if listbox has inside a object containing "string txt" you can do
         {Binding txt} and it will show the text-->
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <Image Source="{Binding .}" MaxHeight="50"/>
+                    <Image Source="{Binding .}" MaxHeight="80"/>
                 </DataTemplate>
             </ListBox.ItemTemplate>
 

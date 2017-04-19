@@ -1,11 +1,6 @@
-#define numOfMotors 4
-
-int pTol = 10; // tolerance for pressure controller
-int pSensors[] = {2, 1, 0}; // Analog-In pins for pressure sensors
-int solenoids[] = {2, 3}; // digital pins for solenoid MOSFET gates
-int pSet[] = {0, 0}; // 10 bit number to set pressure
 
 // Stepper Stuff
+#define numOfMotors 4
 const int motorPin[numOfMotors][4] = 
   { {22, 23, 24, 25}, {28, 29, 30, 31}, {34, 35, 36, 37}, {40, 41, 42, 43} }; // row is motor, column is pin
 int stepperState[numOfMotors] = {0}; // state machine for stepper motors
@@ -23,14 +18,11 @@ int idx  = 0; // buffer index
 int valuesArrayIndex = 0;
 int valuesArray[5] = {0}; // numbers to be passed to functions (e.g. sensor #, fan percent, temperature, pressure)
 
+#define solenoidPin 5
 
 void setup() 
 {
-  for (int j = 0; j < sizeof(solenoids); j++)
-  {
-  pinMode(solenoids[j], OUTPUT);
-  digitalWrite(solenoids[j], LOW);
-  }
+  pinMode(solenoidPin, OUTPUT);
 
   for (int motor = 0; motor < numOfMotors; motor++) 
   {
@@ -89,7 +81,8 @@ void UpdateCommands()
     break;
     
     case 1:    // saw a "%" char, so looks for command
-      if ('A' == currentChar || 'M' == currentChar || 'P' == currentChar || 'F' == currentChar || 'L' == currentChar)
+      // list here all allowable commantType chars:
+      if ('A' == currentChar || 'M' == currentChar || 'F' == currentChar || 'W' == currentChar || 'R' == currentChar)
       {
         commandType = currentChar;
         parseState = 2;
@@ -131,33 +124,36 @@ void doTasks(char command, int values[])
  switch (command)
  {
   case 'A': // reads analog pin (e.g.  %A0;)
-    {// remember pSensors has the pin, values[] just has the sensor #
-    int sensor = values[0];
-    int pin = pSensors[sensor];
-    Serial.print( "\nA," + (String)sensor + "," + analogRead(pin));
+    {// has only one value (value[0]) which is the pin to read
+    Serial.print( "A," + (String)values[0] + "," + analogRead(values[0]) + ";");
     }
     break;
     
-  case 'P': // sets pSet at the corresponding sensor # (e.g.  %P1,300; sets sensor # 1 to value 300)
-    pSet[values[0]] = values[1]; // values = {sensor#, set point}
-    break;
-
   case 'F': // sets fan speed percent (e.g.  %F90; sets fan to 90%)
+    if (values[0] > 100) values[0] = 100;
     OCR3B = values[0] * ICR3 / 100; // pin 2 on MEGA
     break;
 
   case 'M': // %M(a),(b); requests motor (a) to move # of steps (b) (e.g.  %M2,-100; makes motor 2 go 100 steps clockwise)
-    //int motor = values[0];
-    //int reqSteps = values[1];
-    //Serial.println("motor:" + (String)motor + "  reqSteps:" +(String)reqSteps);
-    //requestedSteps[motor] = reqSteps;
-    //newRequest[motor] = true;
     requestedSteps[values[0]] = values[1];
     newRequest[values[0]] = true;
     break;
 
-  case 'L': // changes pressure control tolerance pTol (e.g.  %L5; sets pTol to 5)
-    pTol = values[0];
+  case 'W': 
+    // gives direct control to digital pins output (write). Careful to be a writeable pin (pinMode)
+    // %W,8,1; means pin8 HIGH, %W,8,0; is pin8 LOW
+    if (0 == values[1]) 
+    {
+      digitalWrite(values[0], LOW);
+    } 
+    else if (1 == values[1]) 
+    {
+      digitalWrite(values[0], HIGH);
+    }
+    break;
+
+  case 'R': // reads digital pin. %R7; reads state of digital pin7, returns 1 or 0 for HIGH/LOW
+    Serial.print( "D," + (String)values[0] + "," + (String)digitalRead(values[0]) + ";");
     
   default: break;
  }
@@ -313,13 +309,3 @@ void stepper(int motor)    // requestedSteps is updated by Serial.
   lastStepTime[motor] = millis();
   //Serial.println( (String)motor + " moved");
 }
-
-//// PRESSURE CONTROL VIA SOLENOIDS
-//void controlPressure(int k) 
-//{
-//  if (analogRead(pSensors[k]) < pSet[k] - pTol) digitalWrite(solenoids[k], HIGH);
-//  if (analogRead(pSensors[k]) > pSet[k] + pTol) digitalWrite(solenoids[k], LOW);
-//}
-
-
-
