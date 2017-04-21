@@ -38,9 +38,12 @@ namespace CatalystGUI
             // create collecton on UI thread so I won't have any problems with scope BS
             UIDispatcher.BeginInvoke( new Action( () => 
             {
-                imageSourceFrames = new ObservableCollection<ImageSource>();
+                ImageSourceFrames = new ObservableCollection<ImageSource>();
             }));
-            
+
+            RawImages = new List<IManagedImage>();
+
+
             InitializeCamera();
         }
 
@@ -85,42 +88,49 @@ namespace CatalystGUI
 
 
         // gets called when "Capture" UI button is clicked
-
-        private ObservableCollection<ImageSource> imageSourceFrames;
+        private ObservableCollection<ImageSource> _imageSourceFrames;
         public ObservableCollection<ImageSource> ImageSourceFrames
-        {
+        {   //"observable collection" automatically notifies UI when changed
             get
             {
-                return imageSourceFrames;
+                return _imageSourceFrames;
             }
 
             set
             {
-                imageSourceFrames = value;
+                _imageSourceFrames = value;
                 NotifyPropertyChanged("ImageSourceFrames");
             }
         }
+        List<IManagedImage> RawImages; // keeps raws
         public void Capture()
         {
-            imageSourceFrames.Clear();
-            SetAcqusitionMode(AcquisitionMode.Multi, FrameCount);
-            currentCam.BeginAcquisition();
-
-            // grab image from camera, convert to ImageSource, add to collection which is Bind to listbox
-            for (uint k = 0; k < FrameCount; k++)
+            ImageSourceFrames.Clear();
+            Task.Run(new Action(() =>
             {
-                using (var rawImage = currentCam.GetNextImage())
-                {
-                    imageSourceFrames.Add(ConvertRawToBitmapSource(rawImage));
-                }
+                 
+                 SetAcqusitionMode(AcquisitionMode.Multi, FrameCount);
+                 currentCam.BeginAcquisition();
 
-                // doesn't work in real time: 
-                NotifyPropertyChanged("ImageSourceFrames"); // if I wanna see them come in real time
+                    // grab image from camera, convert to ImageSource, add to collection which is Bind to listbox
+                    for (uint k = 0; k < FrameCount; k++)
+                    {
+                        using (var rawImage = currentCam.GetNextImage())
+                        {
+                        RawImages.Add(rawImage);
+                        UIDispatcher.Invoke( () => 
+                            { // needs to be done with Dispatcher or else it doesn't get a chance to updat UI cuz this task hogs the thread
+                                ImageSourceFrames.Add(ConvertRawToBitmapSource(rawImage));
+                                if (ImageSourceFrames.Count == 1)  UIimage = ImageSourceFrames[0]; // put first one on screen
+                            });
+                        }
 
-            }
-            UIimage = imageSourceFrames[0]; // put first one on screen
-            currentCam.EndAcquisition();
+                        // doesn't work in real time: 
+                        //NotifyPropertyChanged("ImageSourceFrames"); // if I wanna see them come in real time
 
+                    }
+                 currentCam.EndAcquisition();
+             }));
         }
 
         // should be made into a Task

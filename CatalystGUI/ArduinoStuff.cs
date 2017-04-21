@@ -10,14 +10,17 @@ namespace CatalystGUI
 {
     internal class ArduinoStuff : INotifyPropertyChanged
     {
+        #region Misc fields
         public const int BAUD_RATE = 115200;
         SerialPort usb;
         Dispatcher UIDispatcher;
         DispatcherTimer serialTimer;
+        Task serialTask; // handles incoming data from usb on separate thread
 
         int[] analogValues;
         Dictionary<string, int> nameToPinMap; // key: name of device plugged in, value: Arduino pin
         Dictionary<int, string> pinToNameMap; // key: Arduino pin, value: name of device plugged in
+        #endregion
 
         #region  Properties that UI elements bind to
         public bool SIunits { get; set; } // true = SI (kPa, microns), false = standard (psi, thou)
@@ -47,6 +50,17 @@ namespace CatalystGUI
         public ArduinoStuff(Dispatcher UIDispatcher)
         {
             this.UIDispatcher = UIDispatcher;
+
+            // create task to obtain tokens from serial, add to queue, then process queue
+            serialTask = new Task(new Action(() =>
+            {
+                while (true)
+                {
+                    GetSerialTokens();
+                    ProcessTokenQueue();
+                }
+            }));
+
             serialTimer = new DispatcherTimer();
             serialTimer.Interval = TimeSpan.FromMilliseconds(500);
             serialTimer.Tick += ProcessSerial_Tick;
@@ -64,6 +78,12 @@ namespace CatalystGUI
             nameToPinMap.Add("FanSpeed", 3);
             nameToPinMap.Add("NeedlePosition", 4);
             pinToNameMap = MakeReverseMap(nameToPinMap);
+        }
+        
+        // move motor
+        public void MoveStepper(int motor, int steps)
+        {
+            usb.Write(String.Format("%M{0},{1},", motor, steps));
         }
 
         // Timer stuff
@@ -87,7 +107,7 @@ namespace CatalystGUI
         // enqueues tokens coming in from serial
         void GetSerialTokens()
         {
-            while (null != incomingSerialBuffer && "" != incomingSerialBuffer)
+            while (null != this.incomingSerialBuffer && "" != incomingSerialBuffer)
             {
                 if (incomingSerialBuffer[0] == ';')
                 {
@@ -152,7 +172,7 @@ namespace CatalystGUI
         // event handler for USB data received. All it does is read all available bytes and puts them in string buffer
         private void USB_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
-            incomingSerialBuffer += usb.ReadExisting();
+            this.incomingSerialBuffer += usb.ReadExisting();
         }
         #endregion
 
@@ -160,51 +180,36 @@ namespace CatalystGUI
         // PortSelector is dropdown thing from UI that selects COM
         public void Connect(ComboBox PortSelector)
         {
-            if (usb == null)
+            try
             {
-                if (SerialPort.GetPortNames().Length == 1)
-                {   // if there's only 1 COM available, pick that one automatically
-                    usb = new SerialPort(SerialPort.GetPortNames()[0], BAUD_RATE);
-                    PortSelector.SelectedIndex = 0; // automatically show what's selected (first one)
-                    //Console.WriteLine(SerialPort.GetPortNames()[0]);
-                }
-                else if (PortSelector.SelectedValue == null)
+                if (usb == null)
                 {
-                    System.Windows.MessageBox.Show("Select a COM port.");
-                    return;
-                }
-                else
-                {
-                    usb = new SerialPort(PortSelector.SelectedValue.ToString(), BAUD_RATE);
-                }
-                // subscribe handler to DataReceived event (gets raised kind of randomly after it receives byte in serial pipe)
-                usb.DataReceived += USB_DataReceived;
-
-                // open port
-                if (!usb.IsOpen) usb.Open(); // could take outside of if(null)
-
-
-                // start task to obtain tokens from serial
-                Task serialListenTask = new Task(new Action(() =>
-               {
-                   while (true)
-                   {
-                       GetSerialTokens();
-                   }
-               }));
-
-                // start task to process tokens from queue. 
-                Task processTokenTask = new Task(new Action(() =>
-                {
-                    while (true)
-                    {
-                        ProcessTokenQueue();
+                    if (SerialPort.GetPortNames().Length == 1)
+                    {   // if there's only 1 COM available, pick that one automatically
+                        usb = new SerialPort(SerialPort.GetPortNames()[0], BAUD_RATE);
+                        PortSelector.SelectedIndex = 0; // automatically show what's selected (first one)
                     }
-                }));
+                    else if (PortSelector.SelectedValue == null)
+                    {
+                        System.Windows.MessageBox.Show("No COM port selected.");
+                        return;
+                    }
+                    else
+                    { // use the COM selected from combo box
+                        usb = new SerialPort(PortSelector.SelectedValue.ToString(), BAUD_RATE);
+                    }
+                    // subscribe handler to DataReceived event (gets raised kind of randomly after it receives byte in serial pipe)
+                    usb.DataReceived += USB_DataReceived;
 
-                serialListenTask.Start();
-                processTokenTask.Start();
+                    if (!usb.IsOpen) usb.Open();
 
+                    // starts task that processes incoming serial data
+                    serialTask.Start();
+                }
+            } 
+            catch (Exception e)
+            {
+                System.Windows.MessageBox.Show("Exception thrown in ArduinoStuff class' public void Connect(ComboBox PortSelector) method. Exeption message: " + e.Message);
             }
 
         }

@@ -109,11 +109,12 @@ namespace CatalystGUI
         #region Buttons: Pressures, Fan, Needle-position +/-
         private void MainPressureMinus_Click(object sender, RoutedEventArgs e)
         {
-
+            arduinoStuff.MoveStepper(0, -10);
         }
 
         private void MainPressurePlus_Click(object sender, RoutedEventArgs e)
         {
+            arduinoStuff.MoveStepper(0, 10);
 
         }
 
