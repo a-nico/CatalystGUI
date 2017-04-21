@@ -75,7 +75,9 @@ namespace CatalystGUI
         private void Capture_Click(object sender, RoutedEventArgs e)
         {
             //CaptureButton.IsEnabled = false; // don't know how to re-enable through binding
-            cameraStuff.Capture();
+            //cameraStuff.Capture();
+            // debug openCV
+            cameraStuff.GetImage();
         }
 
         private void Live_Click(object sender, RoutedEventArgs e)

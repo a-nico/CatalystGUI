@@ -8,6 +8,10 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using SpinnakerNET;
 using SpinnakerNET.GenApi;
+using Emgu.CV;
+using Emgu.Util;
+using Emgu.CV.Structure;
+using System.Drawing;
 
 namespace CatalystGUI
 {
@@ -137,28 +141,27 @@ namespace CatalystGUI
         public void GetImage()
         {
             IManagedImage rawImage = null;
-            Task task1 = new Task(() =>
-            {
-                SetAcqusitionMode(AcquisitionMode.Single, 0); // maybe allow client to call this method
-                currentCam.BeginAcquisition(); // need to start this every time
+            SetAcqusitionMode(AcquisitionMode.Single, 0); // maybe allow client to call this method
+            currentCam.BeginAcquisition(); // need to start this every time
+            rawImage = currentCam.GetNextImage().Convert(PixelFormatEnums.Mono8);
 
-                rawImage = currentCam.GetNextImage();
-                //convertedImage = ConvertRawToBitmapSource(rawImage);
-                // updating UI image has to be done on UI thread. Use Dispatcher
-                //    UIDispatcher.Invoke(() => {
-                //        SetUIimage();
-                //    });
+            // Image OpenCV type of image (matrix or something)
+            Image <Gray, Byte> cvImage = new Image<Gray, byte>((int)rawImage.Width, (int)rawImage.Height);
 
-                //    currentCam.EndAcquisition(); // end AFTER messing with IManagedImage rawimage or else throws that werid corrupt memory exception
-            });
+            cvImage.Bytes = rawImage.ManagedData; // ManagedData is byte[] of rawImage
 
-            task1.Start();
-            task1.Wait();
+
+            Point pt1 = new Point(300, 300);
+            Point pt2 = new Point(800, 800);
+            LineSegment2D line = new LineSegment2D(pt1, pt2);
+            cvImage.Draw(line, new Gray(1), 3); // changes bytes in cvImage
+            //cvImage.Save( file path );            
+            UIimage = ConvertCVImageToBitmapSource(cvImage.Bytes, rawImage.Width, rawImage.Height);
 
             // now back to UI thread no?
-            rawImage.Save("C:/afterTask.bmp");
+            //rawImage.Save("C:/afterTask.bmp");
             //ImageSource thing = new ImageSource(convertedImage);
-
+            currentCam.EndAcquisition();
         }
 
         #region Acquisition Mode
@@ -299,6 +302,23 @@ namespace CatalystGUI
             }
         }
         #endregion
+
+        BitmapSource ConvertCVImageToBitmapSource(byte[] imageBytes, uint width, uint height)
+        {
+            System.Windows.Media.PixelFormat format = System.Windows.Media.PixelFormats.Gray8;
+
+            return BitmapSource.Create(
+                       (int)width,
+                       (int)height,
+                       96d,
+                       96d,
+                       format,
+                       null,
+                       imageBytes,
+                       ((int)width * format.BitsPerPixel + 7) / 8
+                       );
+
+        }
 
         // convert raw image (IManagedImage) to BitmapSource
         private BitmapSource ConvertRawToBitmapSource(IManagedImage rawImage)
