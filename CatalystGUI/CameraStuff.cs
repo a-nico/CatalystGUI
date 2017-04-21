@@ -112,14 +112,15 @@ namespace CatalystGUI
                 using (var rawImage = currentCam.GetNextImage())
                 {
                     imageSourceFrames.Add(ConvertRawToBitmapSource(rawImage));
-                    // doesn't work: 
-                    //NotifyPropertyChanged("ImageSourceFrames"); // if I wanna see them come in real time
                 }
+
+                // doesn't work in real time: 
+                NotifyPropertyChanged("ImageSourceFrames"); // if I wanna see them come in real time
+
             }
             UIimage = imageSourceFrames[0]; // put first one on screen
             currentCam.EndAcquisition();
-            // ImageSourceFrames = imageSourceFrames;
-            // why do I see them coming in? Who notifies it?
+
         }
 
         // should be made into a Task

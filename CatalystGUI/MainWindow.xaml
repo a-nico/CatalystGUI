@@ -8,15 +8,12 @@
         Title="Catalyst Project (Confidential)" Height="780" Width="840">
     <Window.Resources>
         <Style TargetType="{x:Type TextBlock}">
-            <Setter Property="FontSize" Value="10pt"/>
-        </Style>
-        <Style TargetType="{x:Type TextBox}">
-            <Setter Property="FontSize" Value="10pt"/>
-        </Style>
-        <Style TargetType="{x:Type Button}">
             <Setter Property="FontSize" Value="12pt"/>
         </Style>
-        <Style TargetType="{x:Type TextBlock}">
+        <Style TargetType="{x:Type TextBox}">
+            <Setter Property="FontSize" Value="12pt"/>
+        </Style>
+        <Style TargetType="{x:Type Button}">
             <Setter Property="FontSize" Value="12pt"/>
         </Style>
     </Window.Resources>
@@ -29,7 +26,7 @@
         </Grid.ColumnDefinitions>
 
         <!--Arduino control grid-->
-        <Grid Grid.Column="0">
+        <Grid Name="ArduinoGrid"  Grid.Column="0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -38,95 +35,59 @@
 
             <!--connect and COM port-->
             <StackPanel Grid.Row="0" Orientation="Horizontal">
-                <Button Content="Connect USB"/>
+                <Button Click="ConnectUSB_Click" Content="Connect USB"/>
                 <ComboBox x:Name="PortSelector" MinWidth="100"/>
             </StackPanel>
 
-            <!--pressure/fan controls-->
+            <!--pressure/fan/needle controls-->
             <StackPanel Grid.Row="1" Margin="5,0,0,0" Orientation="Vertical">
                 
                 <!--Inlet regulator pressure-->
                 <StackPanel Margin="0,5,0,0" Orientation="Horizontal">
                     <TextBlock Text="Main:" Width="60"/>
-                    <TextBlock Text="1234" MinWidth="40"/>
-                    <Button Click="MainPressureMinus" Content="-" Width="20"/>
-                    <TextBlock Text="1234" MinWidth="40"/>
-                    <Button Click="MainPressurePlus" Content="-" Width="20"/>
+                    <TextBlock  Text="{Binding MainPressure}" MinWidth="40"/>
+                    <Button Click="MainPressureMinus_Click" Content="-" Width="20"/>
+                    <TextBox Text="1234" MinWidth="40"/>
+                    <Button Click="MainPressurePlus_Click" Content="+" Width="20"/>
                 </StackPanel>
 
                 <!--Needle pressure-->
                 <StackPanel Margin="0,5,0,0" Orientation="Horizontal">
-                    <TextBlock Text="Needle:" Width="60"/>
-                    <TextBlock Text="1234" MinWidth="40"/>
-                    <Button Click="NeedlePressureMinus" Content="-" Width="20"/>
-                    <TextBlock Text="1234" MinWidth="40"/>
-                    <Button Click="NeedlePressurePlus" Content="-" Width="20"/>
+                    <TextBlock Text="Ndl p:" Width="60"/>
+                    <TextBlock Text="{Binding NeedlePressure}" MinWidth="40"/>
+                    <Button Click="NeedlePressureMinus_Click" Content="-" Width="20"/>
+                    <TextBox Text="1234" MinWidth="40"/>
+                    <Button Click="NeedlePressurePlus_Click" Content="+" Width="20"/>
                 </StackPanel>
                 
                 <!--Liquid pressure-->
                 <StackPanel Margin="0,5,0,0" Orientation="Horizontal">
                     <TextBlock Text="Liquid:" Width="60"/>
-                    <TextBlock Text="1234" MinWidth="40"/>
-                    <Button Click="LiquidPressureMinus" Content="-" Width="20"/>
-                    <TextBlock Text="1234" MinWidth="40"/>
-                    <Button Click="LiquidPressurePlus" Content="-" Width="20"/>
+                    <TextBlock Text="{Binding LiquidPressure}" MinWidth="40"/>
+                    <Button Click="LiquidPressureMinus_Click" Content="-" Width="20"/>
+                    <TextBox Text="1234" MinWidth="40"/>
+                    <Button Click="LiquidPressurePlus_Click" Content="+" Width="20"/>
                 </StackPanel>
 
                 <!--Fan Speed %-->
                 <StackPanel Margin="0,5,0,0" Orientation="Horizontal">
                     <TextBlock Text="Fan %:" Width="60"/>
-                    <TextBlock Text="1234" MinWidth="40"/>
-                    <Button Click="FanSpeedMinus" Content="-" Width="20"/>
-                    <TextBlock Text="1234" MinWidth="40"/>
-                    <Button Click="FanSpeedPlus" Content="-" Width="20"/>
+                    <TextBlock Text="{Binding FanSpeed}" MinWidth="40"/>
+                    <Button Click="FanSpeedMinus_Click" Content="-" Width="20"/>
+                    <TextBox Text="1234" MinWidth="40"/>
+                    <Button Click="FanSpeedPlus_Click" Content="+" Width="20"/>
+                </StackPanel>
+
+                <!--Needle Position-->
+                <StackPanel Margin="0,5,0,0" Orientation="Horizontal">
+                    <TextBlock Text="Ndl x:" Width="60"/>
+                    <TextBlock Text="{Binding NeedlePosition}" MinWidth="40"/>
+                    <Button Click="NeedlePositionMinus_Click" Content="-" Width="20"/>
+                    <TextBox Text="1234" MinWidth="40"/>
+                    <Button Click="NeedlePositionPlus_Click" Content="+" Width="20"/>
                 </StackPanel>
 
             </StackPanel>
-
-            <!--<Grid Grid.Row="2" Margin="4,5,4,0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="20"/>
-                </Grid.ColumnDefinitions>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-
-                --><!--pressure 0: inlet regulator--><!--
-                <TextBlock Text="Main: " Grid.Column="0" Grid.Row="0"/>
-                <TextBlock Text="1234" Grid.Column="1" Grid.Row="0"/>
-                <Button Click="MainPressureMinus" Content="-" Grid.Column="2" Grid.Row="0"/>
-                <TextBlock Text="1234" HorizontalAlignment="Center" Grid.Column="3" Grid.Row="0"/>
-                <Button Click="MainPressurePlus" Content="+" Grid.Column="4" Grid.Row="0"/>
-
-                --><!--pressure 1 needle--><!--
-                <TextBlock Text="Needle: " Grid.Column="0" Grid.Row="1"/>
-                <TextBlock Text="1234" Grid.Column="1" Grid.Row="1"/>
-                <Button Content="-" Grid.Column="2" Grid.Row="1"/>
-                <TextBlock Text="1234" HorizontalAlignment="Center" Grid.Column="3" Grid.Row="1"/>
-                <Button Content="+" Grid.Column="4" Grid.Row="1"/>
-
-                --><!--pressure 2: liquid--><!--
-                <TextBlock Text="Liquid: " Grid.Column="0" Grid.Row="2"/>
-                <TextBlock Text="1234" Grid.Column="1" Grid.Row="2"/>
-                <Button Content="-" Grid.Column="2" Grid.Row="2"/>
-                <TextBlock Text="1234" HorizontalAlignment="Center" Grid.Column="3" Grid.Row="2"/>
-                <Button Content="+" Grid.Column="4" Grid.Row="2"/>
-
-                --><!--fan speed--><!--
-                <TextBlock Text="Fan %: " Grid.Column="0" Grid.Row="3"/>
-                <TextBlock Text="1234" Grid.Column="1" Grid.Row="3"/>
-                <Button Content="-" Grid.Column="2" Grid.Row="3"/>
-                <TextBlock Text="1234" HorizontalAlignment="Center" Grid.Column="3" Grid.Row="3"/>
-                <Button Content="+" Grid.Column="4" Grid.Row="3"/>
-
-            </Grid>-->
 
         </Grid>
         <!--end arduino grid-->

@@ -89,6 +89,7 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="ArduinoStuff.cs" />
     <Compile Include="CameraStuff.cs" />
     <Compile Include="Spacing.cs" />
     <Compile Include="MarginSetter.cs" />
