@@ -137,7 +137,6 @@ namespace CatalystGUI
              }));
         }
 
-        // should be made into a Task
         public void GetImage()
         {
             IManagedImage rawImage = null;

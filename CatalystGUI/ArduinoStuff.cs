@@ -8,6 +8,16 @@ using System.Windows.Threading;
 
 namespace CatalystGUI
 {
+    // what I have:
+    // Pressure - analog (read), motor (set)
+    // Needle position - data from image not arduino (maybe count steps? but then need to keep track offline)
+    // Solenoid - digital (on/off)
+    // Fan - digital (on/off), serial (sets PWM duty cycle)
+    // Future:
+    // heater - serial (in), serial (PWM duty cycle)
+    // LED ring - serial (PWM duty cycle)
+
+    // Communicates with Arduino through USB, sends and receives data tokens that are parsed by my .ino code.
     internal class ArduinoStuff : INotifyPropertyChanged
     {
         #region Misc fields
@@ -25,6 +35,7 @@ namespace CatalystGUI
         #region  Properties that UI elements bind to
         public bool SIunits { get; set; } // true = SI (kPa, microns), false = standard (psi, thou)
         // these are read-only because it's just raw data that comes in (displayed in TextBlock)
+
         public float MainPressure
         {
             get { return ConvertRawToPressure(analogValues[nameToPinMap["MainPressure"]]); }
@@ -47,6 +58,19 @@ namespace CatalystGUI
         }
         #endregion
 
+        private List<AnalogValue> _pressures;
+        public List<AnalogValue> Pressures
+        {
+            get
+            {
+                return _pressures;
+            }
+            set
+            {
+                _pressures = value;
+            }
+        }
+
         public ArduinoStuff(Dispatcher UIDispatcher)
         {
             this.UIDispatcher = UIDispatcher;
@@ -67,9 +91,20 @@ namespace CatalystGUI
             serialTimer.Start();
 
             // arrays
+            _pressures = new List<AnalogValue>(); // list of objects that have DisplayName, Pin, Value. For UI binding
             analogValues = new int[16]; // stores 10-bit numbers as they come in from Arduino (MEGA has 16 pins)
             serialTokenQueue = new Queue<string>(); // initialize
-            
+
+            // make AnalogValue objects that map to pressure
+            Pressures.Add(new AnalogValue("Main P", 0));
+            Pressures.Add(new AnalogValue("Liq P", 1));
+            Pressures.Add(new AnalogValue("Ndl P", 2));
+            NotifyPropertyChanged("Pressures");
+            NotifyPropertyChanged("DisplayName");
+            NotifyPropertyChanged("Value");
+
+
+
             // maps
             nameToPinMap = new Dictionary<string, int>();
             nameToPinMap.Add("MainPressure", 0);

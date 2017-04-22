@@ -31,6 +31,7 @@ namespace CatalystGUI
             LiveButton.IsEnabled = false;
             StopButton.IsEnabled = false;
             CaptureButton.IsEnabled = false;
+             
 
         }
 
@@ -167,6 +168,8 @@ namespace CatalystGUI
             {
                 arduinoStuff = new ArduinoStuff(Dispatcher);
                 ArduinoGrid.DataContext = arduinoStuff;
+                PressuresItemsControl.ItemsSource = arduinoStuff.Pressures; // cuz I can't figure out how to bind it in XAML
+
             }
 
             arduinoStuff.Connect(PortSelector);
