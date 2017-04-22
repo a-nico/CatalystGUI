@@ -17,47 +17,26 @@ namespace CatalystGUI
     // heater - serial (in), serial (PWM duty cycle)
     // LED ring - serial (PWM duty cycle)
 
-    // Communicates with Arduino through USB, sends and receives data tokens that are parsed by my .ino code.
     internal class ArduinoStuff : INotifyPropertyChanged
     {
         #region Misc fields
         public const int BAUD_RATE = 115200;
+        public const int FAST_TIMER_TIMESPAN = 100; // 10 Hz
+        public const int SLOW_TIMER_TIMESPAN = 500; // 2 Hz
         SerialPort usb;
         Dispatcher UIDispatcher;
-        DispatcherTimer serialTimer;
+        DispatcherTimer slowTimer; // for requesting  solenoid, fan, LED ring, moving motors
+        DispatcherTimer fastTimer; // for requesting pressure readings
         Task serialTask; // handles incoming data from usb on separate thread
-
         int[] analogValues;
-        Dictionary<string, int> nameToPinMap; // key: name of device plugged in, value: Arduino pin
-        Dictionary<int, string> pinToNameMap; // key: Arduino pin, value: name of device plugged in
+        int[] digitalValues;
+        Dictionary<int, String> digitalMap; // maps digital pins to whatever they're connected to
+        Dictionary<String, int> motorMap; // maps motor name (i.e. NeedleMotor, MainPressureMotor) to its motor # in arduino code
         #endregion
 
         #region  Properties that UI elements bind to
         public bool SIunits { get; set; } // true = SI (kPa, microns), false = standard (psi, thou)
-        // these are read-only because it's just raw data that comes in (displayed in TextBlock)
-
-        public float MainPressure
-        {
-            get { return ConvertRawToPressure(analogValues[nameToPinMap["MainPressure"]]); }
-        }
-        public float NeedlePressure
-        {
-            get { return ConvertRawToPressure(analogValues[nameToPinMap["NeedlePressure"]]); }
-        }
-        public float LiquidPressure
-        {
-            get { return ConvertRawToPressure(analogValues[nameToPinMap["LiquidPressure"]]); }
-        }
-        public float FanSpeed
-        {
-            get { return ConvertRawToPressure(analogValues[nameToPinMap["FanSpeed"]]); }
-        }
-        public float NeedlePosition
-        {
-            get { return ConvertRawToPressure(analogValues[nameToPinMap["NeedlePosition"]]); }
-        }
-        #endregion
-
+        // ItemsControl collection for pressures:
         private List<AnalogValue> _pressures;
         public List<AnalogValue> Pressures
         {
@@ -70,30 +49,23 @@ namespace CatalystGUI
                 _pressures = value;
             }
         }
+        #endregion
 
         public ArduinoStuff(Dispatcher UIDispatcher)
         {
             this.UIDispatcher = UIDispatcher;
 
-            // create task to obtain tokens from serial, add to queue, then process queue
-            serialTask = new Task(new Action(() =>
-            {
-                while (true)
-                {
-                    GetSerialTokens();
-                    ProcessTokenQueue();
-                }
-            }));
-
-            serialTimer = new DispatcherTimer();
-            serialTimer.Interval = TimeSpan.FromMilliseconds(500);
-            serialTimer.Tick += ProcessSerial_Tick;
-            serialTimer.Start();
+            // dictionaries
+            digitalMap = new Dictionary<int, string>();
+            digitalMap.Add(4, "Solenoid");
+            digitalMap.Add(5, "FanOnOff");
+            digitalMap.Add(5, "LEDring");
 
             // arrays
             _pressures = new List<AnalogValue>(); // list of objects that have DisplayName, Pin, Value. For UI binding
             analogValues = new int[16]; // stores 10-bit numbers as they come in from Arduino (MEGA has 16 pins)
-            serialTokenQueue = new Queue<string>(); // initialize
+            analogValues = new int[16]; // stores 0 or 1 as they come in from Arduino (only monitoring 0-13 (PWM pins))
+            serialIncomingQueue = new Queue<string>(); // initialize
 
             // make AnalogValue objects that map to pressure
             Pressures.Add(new AnalogValue("Main P", 0));
@@ -103,41 +75,52 @@ namespace CatalystGUI
             NotifyPropertyChanged("DisplayName");
             NotifyPropertyChanged("Value");
 
+            #region Tasks and Timers
+            // create task to obtain tokens from serial, add to queue, then process queue
+            serialTask = new Task(new Action(() =>
+            {
+                while (true)
+                {
+                    GetSerialTokens();
+                    ProcessIncomingQueue();
+                }
+            }));
 
+            this.slowTimer = new DispatcherTimer();
+            this.slowTimer.Interval = TimeSpan.FromMilliseconds(SLOW_TIMER_TIMESPAN);
+            this.slowTimer.Tick += SlowLoop_Tick;
 
-            // maps
-            nameToPinMap = new Dictionary<string, int>();
-            nameToPinMap.Add("MainPressure", 0);
-            nameToPinMap.Add("NeedlePressure", 1);
-            nameToPinMap.Add("LiquidPressure", 2);
-            nameToPinMap.Add("FanSpeed", 3);
-            nameToPinMap.Add("NeedlePosition", 4);
-            pinToNameMap = MakeReverseMap(nameToPinMap);
+            this.fastTimer = new DispatcherTimer();
+            this.fastTimer.Interval = TimeSpan.FromMilliseconds(FAST_TIMER_TIMESPAN);
+            this.fastTimer.Tick += FastLoop_Tick;
+            // all these start on "Connect()"
+            #endregion
+
         }
-        
+
         // move motor
         public void MoveStepper(int motor, int steps)
         {
-            usb.Write(String.Format("%M{0},{1},", motor, steps));
+            usb.Write(String.Format("%M{0},{1},", motor, steps)); // add to outgoing queue
         }
 
-        // Timer stuff
-        private void ProcessSerial_Tick(object sender, EventArgs e)
+        #region Timer Stuff
+        private void FastLoop_Tick(object sender, EventArgs e)
         {
-            // TEST: write some commands so the serial pipe won't be empty
-            for (uint n = 0; n < 4; n++)
-            {
-                usb.Write(String.Format("%A{0};", n));
-                //System.Threading.Thread.Sleep(10);
-            }
-            //GetSerialTokens();
-            //ProcessTokenQueue();
+            
         }
 
+        private void SlowLoop_Tick(object sender, EventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+        #endregion
 
-        #region Processing data coming from serial.
-        string serialTokenBuffer; // adds chars until a complete token is made (till it sees ";")
-        Queue<string> serialTokenQueue; // once a token is made it gets added to queue
+
+
+        #region Serial Incoming
+        string tokenBuffer; // adds chars until a complete token is made (till it sees ";")
+        Queue<string> serialIncomingQueue; // once a token is made it gets added to queue
 
         // enqueues tokens coming in from serial
         void GetSerialTokens()
@@ -146,50 +129,68 @@ namespace CatalystGUI
             {
                 if (incomingSerialBuffer[0] == ';')
                 {
-                    serialTokenQueue.Enqueue(serialTokenBuffer); // buffer is a complete command, add to queue
-                    serialTokenBuffer = String.Empty; // clear the buffer to make space for next one
-                    incomingSerialBuffer = incomingSerialBuffer.Remove(0, 1); // throw away the ";"
+                    this.serialIncomingQueue.Enqueue(this.tokenBuffer); // buffer is a complete command, add to queue
+                    this.tokenBuffer = String.Empty; // clear the buffer for next token
+                    this.incomingSerialBuffer = this.incomingSerialBuffer.Remove(0, 1); // throw away the ";"
                 }
                 else
-                {   // move one char from incomingSerialBuffer to serialTokenBuffer
-                    serialTokenBuffer += incomingSerialBuffer[0];
-                    incomingSerialBuffer = incomingSerialBuffer.Remove(0, 1);
+                {   // move one char from incomingSerialBuffer to tokenBuffer
+                    this.tokenBuffer += this.incomingSerialBuffer[0];
+                    this.incomingSerialBuffer = this.incomingSerialBuffer.Remove(0, 1);
                 }
 
             }
         }
 
         // processes tokens from queue - basically updates fields/UI with data that came from Arduino
-        private void ProcessTokenQueue()
+        private void ProcessIncomingQueue()
         {
-            while (serialTokenQueue.Count != 0)
+            while (this.serialIncomingQueue.Count != 0)
             {
-                string token = serialTokenQueue.Dequeue();
-                //identifier possibilities are: A (analog pin reading), D (digital pin reading)
-                char identifier = token[0];
+                string[] elements = this.serialIncomingQueue.Dequeue().Split(',');
 
-                switch (identifier)
+                // elements[0] possibilities are: A (analog pin reading), D (digital pin reading)
+                switch ((elements[0])[0])
                 {
                     case 'A':
-                        // should split into [A], [pin], [value]
-                        string[] elements = token.Split(',');
-                        int pin;
-                        int value;
-                        int.TryParse(elements[1], out pin);
-                        int.TryParse(elements[2], out value);
-                        // update the analogValues array with this new data
-                        analogValues[pin] = value;
-
-                        // if UI is monitoring that pin, notify property changed
-                        if (pinToNameMap.TryGetValue(pin, out string name))
                         {
-                            NotifyPropertyChanged(name);
+                            // should split into [A], [pin], [value]
+                            int pin; int value; // placeholders
+
+                            if (int.TryParse(elements[1], out pin)
+                                && int.TryParse(elements[2], out value))
+                            {
+                                // update the analogValues array with this new data
+                                this.analogValues[pin] = value;
+
+                                // if pressure sensor is attached to this pin, update collection
+                                foreach (var p in this.Pressures)
+                                { // inefficient but I don't know how to map "name" to Property.
+                                    if (p.Pin == pin)
+                                    {
+                                        p.Value = ConvertRawToPressure(value);
+                                        NotifyPropertyChanged(p.DisplayName);
+                                    }
+                                }
+                            }
+                            break;
                         }
-                        break;
 
                     case 'D':
-                        // ... to do
-                        break;
+                        {
+                            // should split into [D], [pin], [value (0/1)]
+                            int pin; int value; // placeholders
+
+                            if (int.TryParse(elements[1], out pin)
+                                && int.TryParse(elements[2], out value))
+                            {
+                                // to do: update solenoid, fan, LED ring etc.
+                                // update digitalValues array that holds latest data
+                                this.digitalValues[pin] = value;
+                            }
+
+                            break;
+                        }
 
                     default:
                         // was some garbage identifier, token is popped so don't worry
@@ -198,8 +199,6 @@ namespace CatalystGUI
 
             }
         }
-
-
         #endregion
 
         #region USB receiving bytes (event handler)
@@ -217,7 +216,7 @@ namespace CatalystGUI
         {
             try
             {
-                if (usb == null)
+                if (this.usb == null)
                 {
                     if (SerialPort.GetPortNames().Length == 1)
                     {   // if there's only 1 COM available, pick that one automatically
@@ -233,15 +232,18 @@ namespace CatalystGUI
                     { // use the COM selected from combo box
                         usb = new SerialPort(PortSelector.SelectedValue.ToString(), BAUD_RATE);
                     }
+
                     // subscribe handler to DataReceived event (gets raised kind of randomly after it receives byte in serial pipe)
                     usb.DataReceived += USB_DataReceived;
+                    usb.Open();
 
-                    if (!usb.IsOpen) usb.Open();
+                    serialTask.Start(); // starts task that processes incoming serial data
+                    slowTimer.Start(); // start the timers that send requests to Arduino
+                    fastTimer.Start();
 
-                    // starts task that processes incoming serial data
-                    serialTask.Start();
                 }
-            } 
+            }
+
             catch (Exception e)
             {
                 System.Windows.MessageBox.Show("Exception thrown in ArduinoStuff class' public void Connect(ComboBox PortSelector) method. Exeption message: " + e.Message);
@@ -255,22 +257,11 @@ namespace CatalystGUI
             // the honeywell sensors have range .1(1023) to .9(1023) which map to 0-30 psi
             float psi = 30 * (raw - 1023 / 10) / (1023 * 8 / 10);
 
-            if (SIunits)
+            if (this.SIunits)
             { // 1 psi = 6.89476 kPa
                 return psi * 6.89476f;
             }
             return psi;
-        }
-        
-        // reverses the map so I can have both
-        private Dictionary<int, string> MakeReverseMap(Dictionary<string, int> map)
-        {
-            var reverseMap = new Dictionary<int, string>();
-            foreach (var name in map.Keys)
-            {
-                reverseMap[map[name]] = name;
-            }
-            return reverseMap;
         }
 
         #region PropertyChanged stuff

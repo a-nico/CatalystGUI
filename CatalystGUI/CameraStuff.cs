@@ -46,21 +46,23 @@ namespace CatalystGUI
             }));
 
             RawImages = new List<IManagedImage>();
-
-
-            InitializeCamera();
         }
 
-        public void InitializeCamera()
+        public bool InitializeCamera()
         { // call only once
             spinnakerSystem = new ManagedSystem();
             // get list of cams plugged in:
             {
                 List<IManagedCamera> camList = spinnakerSystem.GetCameras();
-                if (0 == camList.Count) System.Windows.MessageBox.Show("No camera connected.");
+                if (0 == camList.Count)
+                {
+                    System.Windows.MessageBox.Show("No camera connected.");
+                    return false;
+                }
                 else currentCam = camList[0]; // get the first one
             } // camlist is garbage collected
             currentCam.Init(); // don't know what this does
+            return true;
         }
 
         // Called when Live button is clicked. Should run as task
@@ -155,7 +157,7 @@ namespace CatalystGUI
             LineSegment2D line = new LineSegment2D(pt1, pt2);
             cvImage.Draw(line, new Gray(1), 3); // changes bytes in cvImage
             //cvImage.Save( file path );            
-            UIimage = ConvertCVImageToBitmapSource(cvImage.Bytes, rawImage.Width, rawImage.Height);
+            UIimage = ConvertBytesToBitmapSource(cvImage.Bytes, rawImage.Width, rawImage.Height);
 
             // now back to UI thread no?
             //rawImage.Save("C:/afterTask.bmp");
@@ -302,7 +304,7 @@ namespace CatalystGUI
         }
         #endregion
 
-        BitmapSource ConvertCVImageToBitmapSource(byte[] imageBytes, uint width, uint height)
+        BitmapSource ConvertBytesToBitmapSource(byte[] imageBytes, uint width, uint height)
         {
             System.Windows.Media.PixelFormat format = System.Windows.Media.PixelFormats.Gray8;
 

@@ -42,32 +42,32 @@ namespace CatalystGUI
 
         private void ExposurePlus(object sender, RoutedEventArgs e)
         {
-            if (cameraStuff != null) cameraStuff.ExposureTime = (uint)(cameraStuff.ExposureTime * plusMinusMultiplier);
+            if (!StartCamButton.IsEnabled) cameraStuff.ExposureTime = (uint)(cameraStuff.ExposureTime * plusMinusMultiplier);
         }
 
         private void ExposureMinus(object sender, RoutedEventArgs e)
         {
-            if (cameraStuff != null) cameraStuff.ExposureTime = (uint)(cameraStuff.ExposureTime / plusMinusMultiplier);
+            if (!StartCamButton.IsEnabled) cameraStuff.ExposureTime = (uint)(cameraStuff.ExposureTime / plusMinusMultiplier);
         }
 
         private void FrameRateMinus(object sender, RoutedEventArgs e)
         {
-            if (cameraStuff != null) cameraStuff.FrameRate /= plusMinusMultiplier;
+            if (!StartCamButton.IsEnabled) cameraStuff.FrameRate /= plusMinusMultiplier;
         }
 
         private void FrameRatePlus(object sender, RoutedEventArgs e)
         {
-            if (cameraStuff != null) cameraStuff.FrameRate *= plusMinusMultiplier;
+            if (!StartCamButton.IsEnabled) cameraStuff.FrameRate *= plusMinusMultiplier;
         }
 
         private void FrameCountMinus(object sender, RoutedEventArgs e)
         {
-            if (cameraStuff != null) cameraStuff.FrameCount -= 5;
+            if (!StartCamButton.IsEnabled) cameraStuff.FrameCount -= 5;
         }
 
         private void FrameCountPlus(object sender, RoutedEventArgs e)
         {
-            if (cameraStuff != null) cameraStuff.FrameCount += 5;
+            if (!StartCamButton.IsEnabled) cameraStuff.FrameCount += 5;
 
         }
         #endregion
@@ -97,13 +97,20 @@ namespace CatalystGUI
         // starts camera that way it won't happen right when UI starts
         private void StartCam_Click(object sender, RoutedEventArgs e)
         {
-            cameraStuff = new CameraStuff(Dispatcher);
-            CameraGrid.DataContext = cameraStuff; // every child in "Grid" gets properties from this object
+            if (cameraStuff == null)
+            {
+                cameraStuff = new CameraStuff(Dispatcher);
+            }
 
-            StartCamButton.IsEnabled = false;
-            LiveButton.IsEnabled = true;
-            StopButton.IsEnabled = true;
-            CaptureButton.IsEnabled = true;
+            // once it initializes, it turns off Start Cam button
+            if (cameraStuff.InitializeCamera())
+            {
+                CameraGrid.DataContext = cameraStuff; // every child in "Grid" gets properties from this object
+                StartCamButton.IsEnabled = false;
+                LiveButton.IsEnabled = true;
+                StopButton.IsEnabled = true;
+                CaptureButton.IsEnabled = true;
+            }
         }
 
 

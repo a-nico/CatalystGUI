@@ -18,11 +18,15 @@ int idx  = 0; // buffer index
 int valuesArrayIndex = 0;
 int valuesArray[5] = {0}; // numbers to be passed to functions (e.g. sensor #, fan percent, temperature, pressure)
 
-#define solenoidPin 5
+#define solenoidPin 4
+#define fanOnOffPin 5
+#define LEDringPin 6
 
 void setup() 
 {
   pinMode(solenoidPin, OUTPUT);
+  pinMode(LEDringPin, OUTPUT);
+  pinMode(fanOnOffPin, OUTPUT);
 
   for (int motor = 0; motor < numOfMotors; motor++) 
   {
