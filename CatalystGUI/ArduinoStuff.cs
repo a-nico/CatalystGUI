@@ -19,6 +19,12 @@ namespace CatalystGUI
 
     internal class ArduinoStuff : INotifyPropertyChanged
     {
+        #region Pin Constants
+        public const int SOLENOID_PIN = 4;
+        public const int FAN_PIN = 5;
+        public const int LED_PIN = 6;
+        #endregion
+
         #region Misc fields
         public const int BAUD_RATE = 115200;
         public const int FAST_TIMER_TIMESPAN = 100; // 10 Hz
@@ -34,8 +40,72 @@ namespace CatalystGUI
         Dictionary<String, int> motorMap; // maps motor name (i.e. NeedleMotor, MainPressureMotor) to its motor # in arduino code
         #endregion
 
-        #region  Properties that UI elements bind to
+        #region  Properties for Control/UI
         public bool SIunits { get; set; } // true = SI (kPa, microns), false = standard (psi, thou)
+        public bool LEDring // true = on
+        {
+            get
+            {
+                return digitalValues[LED_PIN] != 0;
+            }
+            set
+            {
+                this.serialOutgoingQueue.Enqueue(String.Format("%W,{0},{1};", LED_PIN, value ? 1 : 0));
+                NotifyPropertyChanged(digitalMap[LED_PIN]);
+            }
+        }
+        public bool Solenoid // true = current through solenoid (valve open)
+        {
+            get
+            {
+                return digitalValues[SOLENOID_PIN] != 0;
+            }
+            set
+            {
+                this.serialOutgoingQueue.Enqueue(String.Format("%W,{0},{1};", SOLENOID_PIN, value ? 1 : 0));
+                NotifyPropertyChanged(digitalMap[SOLENOID_PIN]);
+            }
+        }
+        int _fan;
+        public int Fan
+        {
+            get
+            {
+                if (digitalValues[FAN_PIN] == 0) return 0;
+                return _fan;
+            }
+            set
+            {
+                if (value == 0)
+                {   // just switch the MOSFET off
+                    this.serialOutgoingQueue.Enqueue(String.Format("%W,{0},{1};", FAN_PIN, 0));
+                    goto Notify;
+                }
+
+                // getting here means value != 0, but fan shows as OFF
+                if (digitalValues[FAN_PIN] == 0)
+                {   // switch on the fan MOSFET
+                    this.serialOutgoingQueue.Enqueue(String.Format("%W,{0},{1};", FAN_PIN, 1));
+                }
+
+                if (value >= 20 && value < 100)
+                {
+                    this.serialOutgoingQueue.Enqueue(String.Format("%F,{0};", value));
+                }
+                else if (value >= 100)
+                {   // max out at 100 independent of value
+                    this.serialOutgoingQueue.Enqueue(String.Format("%F,{0};", 100));
+                }
+                else
+                {   // put it on low (20)
+                    this.serialOutgoingQueue.Enqueue(String.Format("%F,{0};", 20));
+                }
+
+
+                Notify: NotifyPropertyChanged(digitalMap[FAN_PIN]);
+            }
+        }
+
         // ItemsControl collection for pressures:
         private List<AnalogValue> _pressures;
         public List<AnalogValue> Pressures
@@ -51,29 +121,38 @@ namespace CatalystGUI
         }
         #endregion
 
+        // to do: make UI elements for items in digital map - Solenoid, FanOnOff , LEDring
+        // also, code up the outgoig queue in timers
+
         public ArduinoStuff(Dispatcher UIDispatcher)
         {
             this.UIDispatcher = UIDispatcher;
 
             // dictionaries
-            digitalMap = new Dictionary<int, string>();
-            digitalMap.Add(4, "Solenoid");
-            digitalMap.Add(5, "FanOnOff");
-            digitalMap.Add(5, "LEDring");
+            digitalMap = new Dictionary<int, string>(); // <Digital_pin, name>
+            digitalMap.Add(SOLENOID_PIN, "Solenoid");
+            digitalMap.Add(FAN_PIN, "Fan");
+            digitalMap.Add(LED_PIN, "LEDring");
+            motorMap = new Dictionary<string, int>(); // <name, motor # in .ino code>
+            motorMap.Add("NeedlePositionMotor", 0);
+            motorMap.Add("LiquidPressureMotor", 1);
+            motorMap.Add("NeedlePressureMotor", 2);
+            motorMap.Add("MainPressureMotor", 3);
 
             // arrays
             _pressures = new List<AnalogValue>(); // list of objects that have DisplayName, Pin, Value. For UI binding
             analogValues = new int[16]; // stores 10-bit numbers as they come in from Arduino (MEGA has 16 pins)
             analogValues = new int[16]; // stores 0 or 1 as they come in from Arduino (only monitoring 0-13 (PWM pins))
             serialIncomingQueue = new Queue<string>(); // initialize
+            serialOutgoingQueue = new Queue<string>(); // initialize
+
 
             // make AnalogValue objects that map to pressure
-            Pressures.Add(new AnalogValue("Main P", 0));
-            Pressures.Add(new AnalogValue("Liq P", 1));
-            Pressures.Add(new AnalogValue("Ndl P", 2));
+            // question: shouldn't it be _pressures.Add() and then Pressure = _pressures?
+            Pressures.Add(new AnalogValue("Main p", 0));
+            Pressures.Add(new AnalogValue("Liq p", 1));
+            Pressures.Add(new AnalogValue("Ndl p", 2));
             NotifyPropertyChanged("Pressures");
-            NotifyPropertyChanged("DisplayName");
-            NotifyPropertyChanged("Value");
 
             #region Tasks and Timers
             // create task to obtain tokens from serial, add to queue, then process queue
@@ -98,13 +177,21 @@ namespace CatalystGUI
 
         }
 
-        // move motor
-        public void MoveStepper(int motor, int steps)
+        #region Controls
+        // move stepper motor by name in motorMap
+        public void MoveStepper(string motorName, int steps)
         {
-            usb.Write(String.Format("%M{0},{1},", motor, steps)); // add to outgoing queue
-        }
+            if (motorMap.TryGetValue(motorName, out int motor))
+            {   // if motor name exists, add to outgoing queue
+                serialOutgoingQueue.Enqueue(String.Format("%M{0},{1},", motor, steps)); 
 
-        #region Timer Stuff
+            }
+        }
+        #endregion
+
+        #region Timer Stuff - Serial Outgoing
+        Queue<string> serialOutgoingQueue;
+
         private void FastLoop_Tick(object sender, EventArgs e)
         {
             
@@ -115,8 +202,6 @@ namespace CatalystGUI
             throw new NotImplementedException();
         }
         #endregion
-
-
 
         #region Serial Incoming
         string tokenBuffer; // adds chars until a complete token is made (till it sees ";")
@@ -184,9 +269,12 @@ namespace CatalystGUI
                             if (int.TryParse(elements[1], out pin)
                                 && int.TryParse(elements[2], out value))
                             {
-                                // to do: update solenoid, fan, LED ring etc.
                                 // update digitalValues array that holds latest data
                                 this.digitalValues[pin] = value;
+                                if (this.digitalMap.TryGetValue(pin, out string name))
+                                {
+                                    NotifyPropertyChanged(name);
+                                }
                             }
 
                             break;
@@ -196,7 +284,6 @@ namespace CatalystGUI
                         // was some garbage identifier, token is popped so don't worry
                         break;
                 }
-
             }
         }
         #endregion
