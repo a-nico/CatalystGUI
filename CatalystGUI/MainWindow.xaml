@@ -23,7 +23,7 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
         <!--Arduino control grid-->
@@ -107,7 +107,7 @@
                 <Button Grid.Column="1" Name="LiveButton" Content="Live" Click="Live_Click"/>
                 <Button Grid.Column="2" Name="StopButton" Content="Stop" Click="Stop_Click"/>
                 <Button Grid.Column="3" Name="CaptureButton" Content="Capture" Click="Capture_Click"/>
-                <TextBox Grid.Column="4" Text="{Binding FolderPath}"/>
+                <TextBox Grid.Column="4" Name="CommandLine" KeyDown="CommandLine_KeyDown"/>
             </Grid>
 
             <!--Each control is a vertical StackPanel of label/controls. Controls is [-][textbox][+]-->

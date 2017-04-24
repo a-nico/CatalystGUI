@@ -121,9 +121,9 @@ namespace CatalystGUI
         {
             if (arduinoStuff == null)
             {
-                arduinoStuff = new ArduinoStuff(Dispatcher);
-                ArduinoGrid.DataContext = arduinoStuff;
-                PressuresItemsControl.ItemsSource = arduinoStuff.Pressures; // cuz I can't figure out how to bind it in XAML
+                this.arduinoStuff = new ArduinoStuff(Dispatcher);
+                ArduinoGrid.DataContext = this.arduinoStuff;
+                PressuresItemsControl.ItemsSource = this.arduinoStuff.Pressures; // cuz I can't figure out how to bind it in XAML
 
             }
 
@@ -147,5 +147,37 @@ namespace CatalystGUI
         }
         #endregion
 
+        // command line
+        private void CommandLine_KeyDown(object sender, KeyEventArgs e)
+        {
+            // when "enter" is hit
+            if (Key.Return == e.Key)
+            {
+                // get whatever was typed in text box
+                string command = CommandLine.Text;
+                // clear text box
+                CommandLine.Clear();
+
+                // toggle LED Ring
+                if (command.ToLower().Equals("led"))
+                {
+                    this.arduinoStuff.LEDring = !arduinoStuff.LEDring;
+                }
+                
+                // solenoid ON/OFF
+                if (command.ToLower().StartsWith("sol"))
+                {
+                    if (command.Contains("on"))
+                    {   // have to explicitly turn it on
+                        this.arduinoStuff.Solenoid = true;
+                    }
+                    else
+                    {   // off by default (for safety)
+                        this.arduinoStuff.Solenoid = false;
+                    }
+                }
+
+            }
+        }
     }
 }
