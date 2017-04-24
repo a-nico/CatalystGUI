@@ -78,28 +78,30 @@ namespace CatalystGUI
             {
                 if (value == 0)
                 {   // just switch the MOSFET off
-                    this.serialOutgoingQueue.Enqueue(String.Format("%W,{0},{1};", FAN_PIN, 0));
+                    _fan = 0;
+                    this.serialOutgoingQueue.Enqueue(String.Format("%W{0},{1};", FAN_PIN, _fan));
                     goto Notify;
                 }
 
-                // getting here means value != 0, but fan shows as OFF
                 if (digitalValues[FAN_PIN] == 0)
-                {   // switch on the fan MOSFET
-                    this.serialOutgoingQueue.Enqueue(String.Format("%W,{0},{1};", FAN_PIN, 1));
+                {   // getting here means value != 0, but fan shows as OFF
+                    // switch on the fan MOSFET
+                    this.serialOutgoingQueue.Enqueue(String.Format("%W{0},{1};", FAN_PIN, 1));
                 }
 
                 if (value >= 20 && value < 100)
                 {
-                    this.serialOutgoingQueue.Enqueue(String.Format("%F,{0};", value));
+                    _fan = value;
                 }
                 else if (value >= 100)
                 {   // max out at 100 independent of value
-                    this.serialOutgoingQueue.Enqueue(String.Format("%F,{0};", 100));
+                    _fan = 100;
                 }
                 else
-                {   // put it on low (20)
-                    this.serialOutgoingQueue.Enqueue(String.Format("%F,{0};", 20));
+                {   // anything 1-20 sets fan to 20. To set to zero, have to enter "0"
+                    _fan = 20;
                 }
+                this.serialOutgoingQueue.Enqueue(String.Format("%F{0};", _fan));
 
 
                 Notify: NotifyPropertyChanged(digitalMap[FAN_PIN]);
@@ -107,18 +109,9 @@ namespace CatalystGUI
         }
 
         // ItemsControl collection for pressures:
-        private List<AnalogValue> _pressures;
-        public List<AnalogValue> Pressures
-        {
-            get
-            {
-                return _pressures;
-            }
-            set
-            {
-                _pressures = value;
-            }
-        }
+        //private List<AnalogValue> _pressures;
+        public List<AnalogValue> Pressures { get; set; }
+        
         #endregion
 
         // to do: make UI elements for items in digital map - Solenoid, FanOnOff , LEDring
@@ -140,7 +133,8 @@ namespace CatalystGUI
             motorMap.Add("MainPressureMotor", 3);
 
             // arrays
-            _pressures = new List<AnalogValue>(); // list of objects that have DisplayName, Pin, Value. For UI binding
+            //_pressures = new List<AnalogValue>(); // list of objects that have DisplayName, Pin, Value. For UI binding
+            Pressures = new List<AnalogValue>();
             analogValues = new int[16]; // stores 10-bit numbers as they come in from Arduino (MEGA has 16 pins)
             digitalValues = new int[16]; // stores 0 or 1 as they come in from Arduino (only monitoring 0-13 (PWM pins))
             serialIncomingQueue = new Queue<string>(); // initialize
@@ -148,11 +142,10 @@ namespace CatalystGUI
 
 
             // make AnalogValue objects that map to pressure
-            // question: shouldn't it be _pressures.Add() and then Pressure = _pressures?
             Pressures.Add(new AnalogValue("Main p", 0));
             Pressures.Add(new AnalogValue("Liq p", 1));
             Pressures.Add(new AnalogValue("Ndl p", 2));
-            NotifyPropertyChanged("Pressures");
+            NotifyPropertyChanged("Pressures"); // is this necessary?
 
             #region Tasks and Timers
             // create task to obtain tokens from serial, add to queue, then process queue
@@ -197,10 +190,13 @@ namespace CatalystGUI
         { 
             while (serialOutgoingQueue.Count > 0)
             {
-                this.usb.Write(this.serialOutgoingQueue.Dequeue());
+                string token = this.serialOutgoingQueue.Dequeue();
+                this.usb.Write(token);
+                Console.WriteLine(token);
+                
             }
 
-            foreach (var p in _pressures)
+            foreach (var p in Pressures)
             {   // writing to USB makes arduino return that analog reading which gets handled by incoming task
                 this.usb.Write(String.Format("%A{0};", p.Pin));
             }
@@ -260,7 +256,7 @@ namespace CatalystGUI
                                 // update the analogValues array with this new data
                                 this.analogValues[pin] = value;
 
-                                // if pressure sensor is attached to this pin, update collection
+                                // if pressure sensor is attached to this pin, update Pressures collection elements
                                 foreach (var p in this.Pressures)
                                 { // inefficient but I don't know how to map "name" to Property.
                                     if (p.Pin == pin)
@@ -341,7 +337,6 @@ namespace CatalystGUI
 
                 }
             }
-
             catch (Exception e)
             {
                 System.Windows.MessageBox.Show("Exception thrown in ArduinoStuff class' public void Connect(ComboBox PortSelector) method. Exeption message: " + e.Message);

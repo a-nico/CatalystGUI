@@ -18,7 +18,8 @@ namespace CatalystGUI
             set
             {
                 _value = value;
-                NotifyPropertyChanged("Value");
+                // need to notify it here and it will update the appropriate element in the ItemsControl
+                NotifyPropertyChanged("Value"); 
             }
         }
 

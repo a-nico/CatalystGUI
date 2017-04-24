@@ -116,7 +116,7 @@ namespace CatalystGUI
 
         #endregion
 
-
+        #region Arduino Control Buttons
         private void ConnectUSB_Click(object sender, RoutedEventArgs e)
         {
             if (arduinoStuff == null)
@@ -128,9 +128,24 @@ namespace CatalystGUI
             }
 
             arduinoStuff.Connect(PortSelector);
-            PortSelector.SelectedIndex = 0;
         }
 
+        private void FanMinus_Click(object sender, RoutedEventArgs e)
+        {
+            if (arduinoStuff.Fan <= 20)
+            {
+                arduinoStuff.Fan = 0;
+            } else
+            {
+                arduinoStuff.Fan -= 5;
+            }
+        }
+
+        private void FanPlus_Click(object sender, RoutedEventArgs e)
+        {
+            arduinoStuff.Fan += 5;
+        }
+        #endregion
 
     }
 }
