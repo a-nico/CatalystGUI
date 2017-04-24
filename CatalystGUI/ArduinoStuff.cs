@@ -36,8 +36,7 @@ namespace CatalystGUI
         Task serialTask; // handles incoming data from usb on separate thread
         int[] analogValues;
         int[] digitalValues;
-        Dictionary<int, String> digitalMap; // maps digital pins to whatever they're connected to
-        Dictionary<String, int> motorMap; // maps motor name (i.e. NeedleMotor, MainPressureMotor) to its motor # in arduino code
+        Dictionary<String, int> motorNameMap; // maps motor name (i.e. NeedleMotor, MainPressureMotor) to its motor # in arduino code
         #endregion
 
         #region  Properties for Control/UI
@@ -50,8 +49,7 @@ namespace CatalystGUI
             }
             set
             {
-                this.serialOutgoingQueue.Enqueue(String.Format("%W,{0},{1};", LED_PIN, value ? 1 : 0));
-                NotifyPropertyChanged(digitalMap[LED_PIN]);
+                this.serialOutgoingQueue.Enqueue(String.Format("%W{0},{1};", LED_PIN, value ? 1 : 0));
             }
         }
         public bool Solenoid // true = current through solenoid (valve open)
@@ -61,9 +59,8 @@ namespace CatalystGUI
                 return digitalValues[SOLENOID_PIN] != 0;
             }
             set
-            {
-                this.serialOutgoingQueue.Enqueue(String.Format("%W,{0},{1};", SOLENOID_PIN, value ? 1 : 0));
-                NotifyPropertyChanged(digitalMap[SOLENOID_PIN]);
+            {   // true does digitalWrite(SOLENOID_PIN, HIGH);
+                this.serialOutgoingQueue.Enqueue(String.Format("%W{0},{1};", SOLENOID_PIN, value ? 1 : 0));
             }
         }
         int _fan;
@@ -71,7 +68,6 @@ namespace CatalystGUI
         {
             get
             {
-                if (digitalValues[FAN_PIN] == 0) return 0;
                 return _fan;
             }
             set
@@ -104,7 +100,7 @@ namespace CatalystGUI
                 this.serialOutgoingQueue.Enqueue(String.Format("%F{0};", _fan));
 
 
-                Notify: NotifyPropertyChanged(digitalMap[FAN_PIN]);
+                Notify: NotifyPropertyChanged("Fan");
             }
         }
 
@@ -121,16 +117,12 @@ namespace CatalystGUI
         {
             this.UIDispatcher = UIDispatcher;
 
-            // dictionaries
-            digitalMap = new Dictionary<int, string>(); // <Digital_pin, name>
-            digitalMap.Add(SOLENOID_PIN, "Solenoid");
-            digitalMap.Add(FAN_PIN, "Fan");
-            digitalMap.Add(LED_PIN, "LEDring");
-            motorMap = new Dictionary<string, int>(); // <name, motor # in .ino code>
-            motorMap.Add("NeedlePositionMotor", 0);
-            motorMap.Add("LiquidPressureMotor", 1);
-            motorMap.Add("NeedlePressureMotor", 2);
-            motorMap.Add("MainPressureMotor", 3);
+            // dictionary
+            motorNameMap = new Dictionary<string, int>(); // <name, motor # in .ino code>
+            motorNameMap.Add("NeedlePositionMotor", 0);
+            motorNameMap.Add("LiquidPressureMotor", 1);
+            motorNameMap.Add("NeedlePressureMotor", 2);
+            motorNameMap.Add("MainPressureMotor", 3);
 
             // arrays
             //_pressures = new List<AnalogValue>(); // list of objects that have DisplayName, Pin, Value. For UI binding
@@ -174,7 +166,7 @@ namespace CatalystGUI
         // move stepper motor by name in motorMap
         public void MoveStepper(string motorName, int steps)
         {
-            if (motorMap.TryGetValue(motorName, out int motor))
+            if (motorNameMap.TryGetValue(motorName, out int motor))
             {   // if motor name exists, add to outgoing queue
                 serialOutgoingQueue.Enqueue(String.Format("%M{0},{1},", motor, steps)); 
 
@@ -278,10 +270,7 @@ namespace CatalystGUI
                             {
                                 // update digitalValues array that holds latest data
                                 this.digitalValues[pin] = value;
-                                if (this.digitalMap.TryGetValue(pin, out string name))
-                                {
-                                    NotifyPropertyChanged(name); // because UI elemnts are binded to this object directly
-                                }
+
                             }
 
                             break;
