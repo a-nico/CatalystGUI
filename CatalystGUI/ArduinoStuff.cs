@@ -142,7 +142,7 @@ namespace CatalystGUI
             // arrays
             _pressures = new List<AnalogValue>(); // list of objects that have DisplayName, Pin, Value. For UI binding
             analogValues = new int[16]; // stores 10-bit numbers as they come in from Arduino (MEGA has 16 pins)
-            analogValues = new int[16]; // stores 0 or 1 as they come in from Arduino (only monitoring 0-13 (PWM pins))
+            digitalValues = new int[16]; // stores 0 or 1 as they come in from Arduino (only monitoring 0-13 (PWM pins))
             serialIncomingQueue = new Queue<string>(); // initialize
             serialOutgoingQueue = new Queue<string>(); // initialize
 
@@ -266,7 +266,6 @@ namespace CatalystGUI
                                     if (p.Pin == pin)
                                     {
                                         p.Value = ConvertRawToPressure(value);
-                                        NotifyPropertyChanged(p.DisplayName);
                                     }
                                 }
                             }
@@ -285,7 +284,7 @@ namespace CatalystGUI
                                 this.digitalValues[pin] = value;
                                 if (this.digitalMap.TryGetValue(pin, out string name))
                                 {
-                                    NotifyPropertyChanged(name);
+                                    NotifyPropertyChanged(name); // because UI elemnts are binded to this object directly
                                 }
                             }
 

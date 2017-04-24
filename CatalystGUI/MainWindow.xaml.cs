@@ -116,58 +116,6 @@ namespace CatalystGUI
 
         #endregion
 
-        #region Buttons: Pressures, Fan, Needle-position +/-
-        private void MainPressureMinus_Click(object sender, RoutedEventArgs e)
-        {
-            arduinoStuff.MoveStepper(0, -10);
-        }
-
-        private void MainPressurePlus_Click(object sender, RoutedEventArgs e)
-        {
-            arduinoStuff.MoveStepper(0, 10);
-
-        }
-
-        private void NeedlePressureMinus_Click(object sender, RoutedEventArgs e)
-        {
-
-        }
-
-        private void NeedlePressurePlus_Click(object sender, RoutedEventArgs e)
-        {
-
-        }
-
-        private void LiquidPressureMinus_Click(object sender, RoutedEventArgs e)
-        {
-
-        }
-
-        private void LiquidPressurePlus_Click(object sender, RoutedEventArgs e)
-        {
-
-        }
-
-        private void FanSpeedMinus_Click(object sender, RoutedEventArgs e)
-        {
-
-        }
-
-        private void FanSpeedPlus_Click(object sender, RoutedEventArgs e)
-        {
-
-        }
-
-        private void NeedlePositionMinus_Click(object sender, RoutedEventArgs e)
-        {
-
-        }
-
-        private void NeedlePositionPlus_Click(object sender, RoutedEventArgs e)
-        {
-
-        }
-        #endregion
 
         private void ConnectUSB_Click(object sender, RoutedEventArgs e)
         {
