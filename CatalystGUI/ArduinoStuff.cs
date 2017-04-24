@@ -27,7 +27,7 @@ namespace CatalystGUI
 
         #region Misc fields
         public const int BAUD_RATE = 115200;
-        public const int FAST_TIMER_TIMESPAN = 100; // 10 Hz
+        public const int FAST_TIMER_TIMESPAN = 200; // 5 Hz
         public const int SLOW_TIMER_TIMESPAN = 500; // 2 Hz
         SerialPort usb;
         Dispatcher UIDispatcher;
@@ -192,14 +192,26 @@ namespace CatalystGUI
         #region Timer Stuff - Serial Outgoing
         Queue<string> serialOutgoingQueue;
 
+        // updates pressures, processes outgoing queue: moves steppers, sets fan, solenoid, LED ring
         private void FastLoop_Tick(object sender, EventArgs e)
-        {
-            
-        }
+        { 
+            while (serialOutgoingQueue.Count > 0)
+            {
+                this.usb.Write(this.serialOutgoingQueue.Dequeue());
+            }
 
+            foreach (var p in _pressures)
+            {   // writing to USB makes arduino return that analog reading which gets handled by incoming task
+                this.usb.Write(String.Format("%A{0};", p.Pin));
+            }
+        }
+        
+        // updates state of: fan, solenoid, LED ring.
         private void SlowLoop_Tick(object sender, EventArgs e)
-        {
-            throw new NotImplementedException();
+        {   
+            this.usb.Write(String.Format("%R{0};", LED_PIN));
+            this.usb.Write(String.Format("%R{0};", SOLENOID_PIN));
+            this.usb.Write(String.Format("%R{0};", FAN_PIN));
         }
         #endregion
 
@@ -286,15 +298,15 @@ namespace CatalystGUI
                 }
             }
         }
-        #endregion
 
-        #region USB receiving bytes (event handler)
+        // USB receiving bytes (event handler)
         private string incomingSerialBuffer; // holds incoming bytes as string
         // event handler for USB data received. All it does is read all available bytes and puts them in string buffer
         private void USB_DataReceived(object sender, SerialDataReceivedEventArgs e)
         {
             this.incomingSerialBuffer += usb.ReadExisting();
         }
+
         #endregion
 
         // makes the "usb" object
