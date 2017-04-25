@@ -341,7 +341,7 @@ namespace CatalystGUI
         float ConvertRawToPressure(int raw)
         {
             // the honeywell sensors have range .1(1023) to .9(1023) which map to 0-30 psi
-            float psi = 30 * (raw - 1023 / 10) / (1023 * 8 / 10);
+            float psi = (int)(100 * 30 * ((float)raw - 1023 / 10) / (1023 * 8 / 10)) / 100f; // bs to make 2 decimals
 
             if (this.SIunits)
             { // 1 psi = 6.89476 kPa

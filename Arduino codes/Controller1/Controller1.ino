@@ -8,7 +8,7 @@ int steps[numOfMotors] = {0}; // steps for steppers to move: 0 means doesn't hav
 int requestedSteps[numOfMotors]; // requests to update "steps", updated by Serial
 bool newRequest[numOfMotors] = {false}; // keeps track if request was fulfilled 
 long lastStepTime[numOfMotors] = {0}; // to space out the steps
-#define stepPause 20 // ms to wait between steps (basically sets stepper speed)
+#define stepPause 5 // ms to wait between steps (basically sets stepper speed)
 
 // Serial stuff
 int parseState = 0;

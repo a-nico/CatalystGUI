@@ -156,7 +156,7 @@ namespace CatalystGUI
             AnalogValue context = (AnalogValue)button.DataContext;
 
             // move the appropriate motor to increase pressure
-            arduinoStuff.MoveStepper(context.DisplayName, stepsPerClick);
+            arduinoStuff.MoveStepper(context.DisplayName, -stepsPerClick); // clockwise (-) increases pressure
             
         }
 
@@ -164,7 +164,7 @@ namespace CatalystGUI
         {   // see Plus method for comments
             Button button = (Button)sender;
             AnalogValue context = (AnalogValue)button.DataContext;
-            arduinoStuff.MoveStepper(context.DisplayName, -stepsPerClick);
+            arduinoStuff.MoveStepper(context.DisplayName, stepsPerClick); // ccw(+) decreases pressure
         }
         #endregion
 
