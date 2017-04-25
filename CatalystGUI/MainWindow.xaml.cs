@@ -18,6 +18,7 @@ namespace CatalystGUI
 {
     public partial class MainWindow : Window
     {
+        const int stepsPerClick = 10; // number of stepper steps per +/- click
         CameraStuff cameraStuff;
         ArduinoStuff arduinoStuff;
 
@@ -76,9 +77,9 @@ namespace CatalystGUI
         private void Capture_Click(object sender, RoutedEventArgs e)
         {
             //CaptureButton.IsEnabled = false; // don't know how to re-enable through binding
-            //cameraStuff.Capture();
+            cameraStuff.Capture();
             // debug openCV
-            cameraStuff.GetImage();
+            //cameraStuff.GetImage();
         }
 
         private void Live_Click(object sender, RoutedEventArgs e)
@@ -124,15 +125,15 @@ namespace CatalystGUI
                 this.arduinoStuff = new ArduinoStuff(Dispatcher);
                 ArduinoGrid.DataContext = this.arduinoStuff;
                 PressuresItemsControl.ItemsSource = this.arduinoStuff.Pressures; // cuz I can't figure out how to bind it in XAML
-
+                
             }
 
-            arduinoStuff.Connect(PortSelector);
+            arduinoStuff?.Connect(PortSelector);
         }
 
         private void FanMinus_Click(object sender, RoutedEventArgs e)
         {
-            if (arduinoStuff.Fan <= 20)
+            if (this.arduinoStuff != null && arduinoStuff.Fan <= 20)
             {
                 arduinoStuff.Fan = 0;
             } else
@@ -143,9 +144,31 @@ namespace CatalystGUI
 
         private void FanPlus_Click(object sender, RoutedEventArgs e)
         {
-            arduinoStuff.Fan += 5;
+            if (this.arduinoStuff != null) arduinoStuff.Fan += 5;
+        }
+
+        // following two are from Items Control :
+        private void PressurePlus_Click(object sender, RoutedEventArgs e)
+        {
+            Button button = (Button)sender;
+            // get button's data context so I can see which Pressure it refers to
+            // by default it's "object" but I know it's AnalogValue cuz that's the context it inherits from ItemsControl (because I set it)
+            AnalogValue context = (AnalogValue)button.DataContext;
+
+            // move the appropriate motor to increase pressure
+            arduinoStuff.MoveStepper(context.DisplayName, stepsPerClick);
+            
+        }
+
+        private void PressureMinus_Click(object sender, RoutedEventArgs e)
+        {   // see Plus method for comments
+            Button button = (Button)sender;
+            AnalogValue context = (AnalogValue)button.DataContext;
+            arduinoStuff.MoveStepper(context.DisplayName, -stepsPerClick);
         }
         #endregion
+
+
 
         // command line
         private void CommandLine_KeyDown(object sender, KeyEventArgs e)
@@ -159,13 +182,13 @@ namespace CatalystGUI
                 CommandLine.Clear();
 
                 // toggle LED Ring
-                if (command.ToLower().Equals("led"))
+                if (command.ToLower().Equals("led") && this.arduinoStuff != null)
                 {
                     this.arduinoStuff.LEDring = !arduinoStuff.LEDring;
                 }
                 
                 // solenoid ON/OFF
-                if (command.ToLower().StartsWith("sol"))
+                if (command.ToLower().StartsWith("sol") && this.arduinoStuff != null)
                 {
                     if (command.Contains("on"))
                     {   // have to explicitly turn it on
@@ -176,6 +199,7 @@ namespace CatalystGUI
                         this.arduinoStuff.Solenoid = false;
                     }
                 }
+
 
             }
         }

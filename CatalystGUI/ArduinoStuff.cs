@@ -36,7 +36,7 @@ namespace CatalystGUI
         Task serialTask; // handles incoming data from usb on separate thread
         int[] analogValues;
         int[] digitalValues;
-        Dictionary<String, int> motorNameMap; // maps motor name (i.e. NeedleMotor, MainPressureMotor) to its motor # in arduino code
+        public Dictionary<String, int> motorNameMap; // maps motor name (i.e. NeedleMotor, MainPressureMotor) to its motor # in arduino code
         #endregion
 
         #region  Properties for Control/UI
@@ -117,27 +117,31 @@ namespace CatalystGUI
         {
             this.UIDispatcher = UIDispatcher;
 
+            // names for pressure display
+            string mainPressure = "Main p";
+            string liquidPressure = "Liq p";
+            string needlePressure = "Ndl p";
+
             // dictionary
             motorNameMap = new Dictionary<string, int>(); // <name, motor # in .ino code>
             motorNameMap.Add("NeedlePositionMotor", 0);
-            motorNameMap.Add("LiquidPressureMotor", 1);
-            motorNameMap.Add("NeedlePressureMotor", 2);
-            motorNameMap.Add("MainPressureMotor", 3);
+            motorNameMap.Add(liquidPressure, 1);
+            motorNameMap.Add(needlePressure, 2);
+            motorNameMap.Add(mainPressure, 3);
+
+            // make AnalogValue objects that map to pressure
+            Pressures = new List<AnalogValue>();
+            Pressures.Add(new AnalogValue(mainPressure, 0));
+            Pressures.Add(new AnalogValue(liquidPressure, 1));
+            Pressures.Add(new AnalogValue(needlePressure, 2));
+            NotifyPropertyChanged("Pressures"); // is this necessary?
 
             // arrays
             //_pressures = new List<AnalogValue>(); // list of objects that have DisplayName, Pin, Value. For UI binding
-            Pressures = new List<AnalogValue>();
             analogValues = new int[16]; // stores 10-bit numbers as they come in from Arduino (MEGA has 16 pins)
             digitalValues = new int[16]; // stores 0 or 1 as they come in from Arduino (only monitoring 0-13 (PWM pins))
             serialIncomingQueue = new Queue<string>(); // initialize
             serialOutgoingQueue = new Queue<string>(); // initialize
-
-
-            // make AnalogValue objects that map to pressure
-            Pressures.Add(new AnalogValue("Main p", 0));
-            Pressures.Add(new AnalogValue("Liq p", 1));
-            Pressures.Add(new AnalogValue("Ndl p", 2));
-            NotifyPropertyChanged("Pressures"); // is this necessary?
 
             #region Tasks and Timers
             // create task to obtain tokens from serial, add to queue, then process queue

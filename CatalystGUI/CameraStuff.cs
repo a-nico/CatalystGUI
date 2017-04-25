@@ -111,10 +111,15 @@ namespace CatalystGUI
         List<IManagedImage> RawImages; // keeps raws
         public void Capture()
         {
+            if (liveMode)
+            {   // if it's on Live Mode when "Capture" is clicked
+                liveMode = false;
+                System.Threading.Thread.Sleep(100);
+            }
+
             ImageSourceFrames.Clear();
             Task.Run(new Action(() =>
             {
-                 
                  SetAcqusitionMode(AcquisitionMode.Multi, FrameCount);
                  currentCam.BeginAcquisition();
 
@@ -129,7 +134,8 @@ namespace CatalystGUI
                                 ImageSourceFrames.Add(ConvertRawToBitmapSource(rawImage));
                                 if (ImageSourceFrames.Count == 1)  UIimage = ImageSourceFrames[0]; // put first one on screen
                             });
-                        }
+                        //rawImage.Release(); // wtf http://softwareservices.ptgrey.com/Spinnaker/latest/class_spinnaker_1_1_camera_base.html#aa1de6d4b94fb34698c9edd66edb41250
+                    }
 
                         // doesn't work in real time: 
                         //NotifyPropertyChanged("ImageSourceFrames"); // if I wanna see them come in real time
@@ -173,7 +179,7 @@ namespace CatalystGUI
             INodeMap nodeMap = this.currentCam.GetNodeMap();
             // Retrieve enumeration node from nodemap
             IEnum iAcquisitionMode = nodeMap.GetNode<IEnum>("AcquisitionMode");
-
+            
             switch (mode)
             {
                 case AcquisitionMode.Continuous:
