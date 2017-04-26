@@ -76,6 +76,7 @@
                             <Button Click="PressureMinus_Click" Content="-" Width="20"/>
                             <TextBox Text="set" MinWidth="40"/>
                             <Button Click="PressurePlus_Click" Content="+" Width="20"/>
+                            <Button Click="MotorStop_Click" Content="Stop"/>
                         </StackPanel>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

@@ -18,7 +18,7 @@ namespace CatalystGUI
 {
     public partial class MainWindow : Window
     {
-        const int stepsPerClick = 100; // number of stepper steps per +/- click
+        const int stepsPerClick = 1000; // number of stepper steps per +/- click
         CameraStuff cameraStuff;
         ArduinoStuff arduinoStuff;
 
@@ -120,14 +120,14 @@ namespace CatalystGUI
         private void ConnectUSB_Click(object sender, RoutedEventArgs e)
         {
             if (arduinoStuff == null)
-            {
+            {   // initialization of ArduinoStuff object
                 this.arduinoStuff = new ArduinoStuff(Dispatcher);
                 ArduinoGrid.DataContext = this.arduinoStuff;
                 PressuresItemsControl.ItemsSource = this.arduinoStuff.Pressures; // cuz I can't figure out how to bind it in XAML
                 
             }
 
-            arduinoStuff?.Connect(PortSelector);
+            this.arduinoStuff?.Connect(PortSelector);
         }
 
         private void FanMinus_Click(object sender, RoutedEventArgs e)
@@ -156,7 +156,7 @@ namespace CatalystGUI
             if (this.arduinoStuff != null) arduinoStuff.MoveStepper("NeedlePositionMotor", 10);
         }
 
-        // following two are from Items Control :
+        // following three are from Items Control :
         private void PressurePlus_Click(object sender, RoutedEventArgs e)
         {
             Button button = (Button)sender;
@@ -172,10 +172,17 @@ namespace CatalystGUI
         {   // see Plus method for comments
             Button button = (Button)sender;
             AnalogValue context = (AnalogValue)button.DataContext;
-            arduinoStuff.MoveStepper(context.DisplayName, stepsPerClick); // ccw(+) decreases pressure
+            this.arduinoStuff.MoveStepper(context.DisplayName, stepsPerClick); // ccw(+) decreases pressure
+        }
+
+        // sets that motor to 0 steps (basically stops it)
+        private void MotorStop_Click(object sender, RoutedEventArgs e)
+        {
+            Button button = (Button)sender;
+            AnalogValue context = (AnalogValue)button.DataContext;
+            this.arduinoStuff.MoveStepper(context.DisplayName, 0);
         }
         #endregion
-
 
 
         // command line
