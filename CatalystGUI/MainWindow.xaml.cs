@@ -135,7 +135,7 @@ namespace CatalystGUI
             if (this.arduinoStuff != null && arduinoStuff.Fan <= 20)
             {
                 arduinoStuff.Fan = 0;
-            } else
+            } else if (this.arduinoStuff != null)
             {
                 arduinoStuff.Fan -= 5;
             }
