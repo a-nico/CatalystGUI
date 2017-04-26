@@ -18,7 +18,7 @@ namespace CatalystGUI
 {
     public partial class MainWindow : Window
     {
-        const int stepsPerClick = 10; // number of stepper steps per +/- click
+        const int stepsPerClick = 100; // number of stepper steps per +/- click
         CameraStuff cameraStuff;
         ArduinoStuff arduinoStuff;
 
@@ -32,7 +32,6 @@ namespace CatalystGUI
             LiveButton.IsEnabled = false;
             StopButton.IsEnabled = false;
             CaptureButton.IsEnabled = false;
-             
 
         }
 
@@ -147,6 +146,16 @@ namespace CatalystGUI
             if (this.arduinoStuff != null) arduinoStuff.Fan += 5;
         }
 
+        private void NeedlePositionMinus_Click(object sender, RoutedEventArgs e)
+        {
+            if (this.arduinoStuff != null) arduinoStuff.MoveStepper("NeedlePositionMotor", -10);
+        }
+
+        private void NeedlePositionPlus_Click(object sender, RoutedEventArgs e)
+        {
+            if (this.arduinoStuff != null) arduinoStuff.MoveStepper("NeedlePositionMotor", 10);
+        }
+
         // following two are from Items Control :
         private void PressurePlus_Click(object sender, RoutedEventArgs e)
         {
@@ -157,7 +166,6 @@ namespace CatalystGUI
 
             // move the appropriate motor to increase pressure
             arduinoStuff.MoveStepper(context.DisplayName, -stepsPerClick); // clockwise (-) increases pressure
-            
         }
 
         private void PressureMinus_Click(object sender, RoutedEventArgs e)
@@ -203,5 +211,7 @@ namespace CatalystGUI
 
             }
         }
+
+
     }
 }

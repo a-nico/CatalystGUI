@@ -152,7 +152,7 @@ namespace CatalystGUI
             currentCam.BeginAcquisition(); // need to start this every time
             rawImage = currentCam.GetNextImage().Convert(PixelFormatEnums.Mono8);
 
-            // Image OpenCV type of image (matrix or something)
+            // Image is OpenCV type of image (matrix or something)
             Image <Gray, Byte> cvImage = new Image<Gray, byte>((int)rawImage.Width, (int)rawImage.Height);
 
             cvImage.Bytes = rawImage.ManagedData; // ManagedData is byte[] of rawImage
