@@ -13,9 +13,9 @@ namespace CatalystGUI
     // Needle position - data from image not arduino (maybe count steps? but then need to keep track offline)
     // Solenoid - digital (on/off)
     // Fan - digital (on/off), serial (sets PWM duty cycle)
+    // LED ring - serial (PWM duty cycle)
     // Future:
     // heater - serial (in), serial (PWM duty cycle)
-    // LED ring - serial (PWM duty cycle)
 
     internal class ArduinoStuff : INotifyPropertyChanged
     {
