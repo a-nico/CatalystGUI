@@ -196,6 +196,18 @@ namespace CatalystGUI
                 // clear text box
                 CommandLine.Clear();
 
+                // saving images
+                if (command.ToLower().StartsWith("save") && cameraStuff != null)
+                {
+                    // make sure a directory name was entered
+                    string[] tokens = command.Split(' ');
+                    if (tokens.Length != 2)
+                    {
+                        return;
+                    }
+                    cameraStuff.SaveImages(tokens[1]);
+                        
+                }
 
                 // calls TestPic in CameraStuff (for experimentation)
                 if (command.ToLower().Equals("test"))
