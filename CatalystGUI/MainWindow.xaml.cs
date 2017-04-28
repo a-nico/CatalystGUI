@@ -209,16 +209,6 @@ namespace CatalystGUI
                         
                 }
 
-                // calls TestPic in CameraStuff (for experimentation)
-                if (command.ToLower().Equals("test"))
-                {
-                    if (cameraStuff == null)
-                    {
-                        cameraStuff = new CameraStuff(null);
-                        CameraGrid.DataContext = cameraStuff;
-                    }
-                    cameraStuff?.TestPic();
-                }
 
                 // toggle LED Ring
                 if (command.ToLower().Equals("led") && this.arduinoStuff != null)

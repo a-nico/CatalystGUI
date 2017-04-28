@@ -13,6 +13,7 @@ using Emgu.Util;
 using Emgu.CV.Structure;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
 
 namespace CatalystGUI
 {
@@ -20,6 +21,8 @@ namespace CatalystGUI
     internal class CameraStuff : INotifyPropertyChanged
     {
         #region Misc. Class Fields
+        const int WIDTH = 1280; // image format
+        const int HEIGHT = 1024;
         private IManagedCamera currentCam; // the blackfly
         private ManagedSystem spinnakerSystem; // spinnaker class
         private Dispatcher UIDispatcher; // invokes actions to run on UI thread
@@ -46,7 +49,6 @@ namespace CatalystGUI
                 ImageSourceFrames = new ObservableCollection<ImageSource>();
             }));
 
-            RawImages = new List<IManagedImage>();
         }
 
         public bool InitializeCamera()
@@ -110,7 +112,8 @@ namespace CatalystGUI
                 NotifyPropertyChanged("ImageSourceFrames");
             }
         }
-        List<IManagedImage> RawImages; // keeps raws
+        //List<IManagedImage> RawImages; // keeps raws
+        List<byte[]> rawBytes;
         public void Capture()
         {
             if (liveMode)
@@ -119,27 +122,55 @@ namespace CatalystGUI
                 System.Threading.Thread.Sleep(100); // give it time to end acquisition
             }
 
-            ImageSourceFrames.Clear();
+            ImageSourceFrames.Clear(); // wipe out image source collection
             Task.Run(new Action(() =>
             {
                 SetAcqusitionMode(AcquisitionMode.Multi, FrameCount);
                 currentCam.BeginAcquisition();
 
-                // grab image from camera, convert to ImageSource, add to collection which is Bind to listbox
-                for (uint k = 0; k < FrameCount; k++)
+                // initialize arrays:
+                rawBytes = new List<byte[]>((int)this.FrameCount); //preallocate memory
+                ulong[] timeStamps = new ulong[FrameCount];
+
+                // get image to camera, get its bytes (ManagedData) and TimeStamp
+                for (int k = 0; k < FrameCount; k++)
                 {
-                    using (var rawImage = currentCam.GetNextImage())
+                    using (IManagedImage rawImage = currentCam.GetNextImage())
                     {
-                    this.RawImages.Add(rawImage);
-                        // post on UI
-                        UIDispatcher.Invoke(() =>
-                        { // needs to be done with Dispatcher or else it doesn't get a chance to updat UI cuz this task hogs the thread
-                            ImageSourceFrames.Add(ConvertRawToBitmapSource(rawImage));
-                            if (ImageSourceFrames.Count == 1) UIimage = ImageSourceFrames[0]; // put first one on screen
-                        });
-                        //rawImage.Release(); // I think "using" takes care of this http://softwareservices.ptgrey.com/Spinnaker/latest/class_spinnaker_1_1_camera_base.html#aa1de6d4b94fb34698c9edd66edb41250
+                        rawBytes.Add(rawImage.ManagedData); // ManagedData is byte[] of rawImage
+                        timeStamps[k] = rawImage.TimeStamp;
                     }
                 }
+                currentCam.EndAcquisition(); // done with camera
+
+                // loop again to add burn in timestamps using Emgu and post on UI
+                var t_0 = timeStamps[0];
+                Point timeStampPoint = new Point(10, 80); // bottom left corner of timestamp text
+
+                for (int k = 0; k < rawBytes.Count; k++)
+                {
+                    // "Image" type is EmguCV image (matrix or something)
+                    Image<Gray, Byte> cvImage = new Image<Gray, byte>(WIDTH, HEIGHT);
+                    cvImage.Bytes = rawBytes[k];
+                    // now add the text on the cvImage
+                    CvInvoke.PutText(cvImage,
+                                    (timeStamps[k] - t_0) + " us",
+                                    timeStampPoint, // bottom-left corner of first letter
+                                    Emgu.CV.CvEnum.FontFace.HersheySimplex,
+                                    3, // font scale
+                                    new Emgu.CV.Structure.MCvScalar(0), // font color specified using this werid thing
+                                    2 // thickness of lines used to draw text
+                                    );
+
+                    // post on UI
+                    UIDispatcher.Invoke(() =>
+                    { // needs to be done with Dispatcher or else it doesn't get a chance to update UI cuz this task hogs the thread
+                        ImageSourceFrames.Add(ConvertBytesToBitmapSource(cvImage.Bytes, WIDTH, HEIGHT));
+                        if (k == 0) UIimage = ImageSourceFrames[0]; // put first one on screen
+                    });
+                }
+
+                rawBytes.Clear(); // free up some memory
 
                 // use parallel loop
                 //Parallel.ForEach(RawImages, (rawImg) =>
@@ -147,57 +178,39 @@ namespace CatalystGUI
 
                 //});
 
-                currentCam.EndAcquisition();
             }));
         }
 
-        // puts timestamp and then saves images in RawImages collection
-        public void SaveImages(string directoryName)
+        // saves images on SD card from the ImageSourceFrames collection
+        public void SaveImages(string directoryName, int quality)
         {
-            var t_0 = RawImages[0].TimeStamp;
-            Point timeStampPoint = new Point(10, 80); // bottom left corner of timestamp text
-
-            for (int k = 0; k < RawImages.Count; k++)
+            string folderPath = "D:\\" + directoryName;
+            // creates new folder if it doesn't exist
+            System.IO.Directory.CreateDirectory(folderPath);
+            for (int k = 0; k < ImageSourceFrames.Count; k++)
             {
-                IManagedImage rawImage = RawImages[k];
-                // "Image" type is EmguCV image (matrix or something)
-                Image<Gray, Byte> cvImage = new Image<Gray, byte>((int)rawImage.Width, (int)rawImage.Height);
-                cvImage.Bytes = rawImage.ManagedData; // ManagedData is byte[] of rawImage
-
-                // now add the text on the cvImage
-                CvInvoke.PutText(cvImage,
-                                (rawImage.TimeStamp - t_0) + " μs",
-                                timeStampPoint, // bottom-left corner of first letter
-                                Emgu.CV.CvEnum.FontFace.HersheySimplex,
-                                3, // font scale
-                                new Emgu.CV.Structure.MCvScalar(0), // font color specified using this werid thing
-                                2 // thickness of lines used to draw text
-                                );
-
-                // save image in specified directory name (on SD card) as JPEG
-                cvImage.Save("D:\\" + directoryName + "\\" + k + ".jpg");
-
+                string path = folderPath + "\\" + k + ".jpg";
+                BitmapSource image = (BitmapSource)ImageSourceFrames[k];
+                SaveJPEG(path, quality, image);
             }
         }
-
-        public void TestPic()
+        // default quality of 60
+        public void SaveImages(string directoryName)
         {
-            // import an image for faster testing:
-            string filename = @"C:\Users\Bubble\Pictures\nozzleScreenshot.jpg";
-            Image<Gray, Byte> cvImage = new Image<Gray, byte>(filename);
+            SaveImages(directoryName, 60);
+        }
 
-            Point timeStampPoint = new Point(10, 80); // bottom left corner of timestamp text
-            CvInvoke.PutText(cvImage,
-                                "0123456789",
-                                timeStampPoint, // bottom-left corner of first letter
-                                Emgu.CV.CvEnum.FontFace.HersheySimplex,
-                                3, // font scale
-                                new Emgu.CV.Structure.MCvScalar(0), // font color
-                                2 // thickness of lines used to draw text
-                                );
+        private void SaveJPEG(string path, int quality, BitmapSource bmp)
+        {
+            JpegBitmapEncoder encoder = new JpegBitmapEncoder();
+            BitmapFrame outputFrame = BitmapFrame.Create(bmp);
+            encoder.Frames.Add(outputFrame);
+            encoder.QualityLevel = quality;  // in percent I think (so 0 - 100)
 
-            UIimage = ConvertBytesToBitmapSource(cvImage.Bytes, 1280, 1024);
-
+            using (FileStream file = new FileStream(path, FileMode.Create)) //FileMode.Create will overwrite
+            {
+                encoder.Save(file);
+            }
         }
 
         public void GetImage()
@@ -220,7 +233,7 @@ namespace CatalystGUI
 
 
 
-            UIimage = ConvertBytesToBitmapSource(cvImage.Bytes, rawImage.Width, rawImage.Height);
+            //UIimage = ConvertBytesToBitmapSource(cvImage.Bytes , rawImage.Height);
             
             // now back to UI thread no?
             //rawImage.Save("C:/afterTask.bmp");
@@ -367,7 +380,7 @@ namespace CatalystGUI
         }
         #endregion
 
-        BitmapSource ConvertBytesToBitmapSource(byte[] imageBytes, uint width, uint height)
+        BitmapSource ConvertBytesToBitmapSource(byte[] imageBytes, int width, int height)
         {
             System.Windows.Media.PixelFormat format = System.Windows.Media.PixelFormats.Gray8;
 
