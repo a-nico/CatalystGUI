@@ -40,7 +40,7 @@ namespace CatalystGUI
             this.UIDispatcher = UIDispatcher;
 
             // create collecton on UI thread so I won't have any problems with scope BS
-            UIDispatcher.BeginInvoke( new Action( () => 
+            UIDispatcher?.BeginInvoke( new Action( () => 
             {
                 ImageSourceFrames = new ObservableCollection<ImageSource>();
             }));
@@ -92,6 +92,14 @@ namespace CatalystGUI
             });
         }
 
+        // saves a collection of images
+        public void SaveImages(string directoryName)
+        {
+            foreach(var pic in _imageSourceFrames)
+            {
+                
+            }
+        }
 
         // gets called when "Capture" UI button is clicked
         private ObservableCollection<ImageSource> _imageSourceFrames;
@@ -137,12 +145,29 @@ namespace CatalystGUI
                         //rawImage.Release(); // wtf http://softwareservices.ptgrey.com/Spinnaker/latest/class_spinnaker_1_1_camera_base.html#aa1de6d4b94fb34698c9edd66edb41250
                     }
 
-                        // doesn't work in real time: 
-                        //NotifyPropertyChanged("ImageSourceFrames"); // if I wanna see them come in real time
-
                     }
                  currentCam.EndAcquisition();
              }));
+        }
+
+        public void TestPic()
+        {
+            // import an image for faster testing:
+            string filename = @"C:\Users\Bubble\Pictures\nozzleScreenshot.jpg";
+            Image<Gray, Byte> cvImage = new Image<Gray, byte>(filename);
+
+            Point timeStampPoint = new Point(10, 80); // bottom left corner of timestamp text
+            CvInvoke.PutText(cvImage,
+                                "0123456789",
+                                timeStampPoint, // bottom-left corner of first letter
+                                Emgu.CV.CvEnum.FontFace.HersheySimplex,
+                                3, // font scale
+                                new Emgu.CV.Structure.MCvScalar(0), // font color
+                                2 // thickness of lines used to draw text
+                                );
+
+            UIimage = ConvertBytesToBitmapSource(cvImage.Bytes, 1280, 1024);
+
         }
 
         public void GetImage()
@@ -152,19 +177,21 @@ namespace CatalystGUI
             currentCam.BeginAcquisition(); // need to start this every time
             rawImage = currentCam.GetNextImage().Convert(PixelFormatEnums.Mono8);
 
-            // Image is OpenCV type of image (matrix or something)
+            // "Image" type is EmguCV image (matrix or something)
             Image <Gray, Byte> cvImage = new Image<Gray, byte>((int)rawImage.Width, (int)rawImage.Height);
 
             cvImage.Bytes = rawImage.ManagedData; // ManagedData is byte[] of rawImage
-
 
             Point pt1 = new Point(300, 300);
             Point pt2 = new Point(800, 800);
             LineSegment2D line = new LineSegment2D(pt1, pt2);
             cvImage.Draw(line, new Gray(1), 3); // changes bytes in cvImage
             //cvImage.Save( file path );            
-            UIimage = ConvertBytesToBitmapSource(cvImage.Bytes, rawImage.Width, rawImage.Height);
 
+
+
+            UIimage = ConvertBytesToBitmapSource(cvImage.Bytes, rawImage.Width, rawImage.Height);
+            
             // now back to UI thread no?
             //rawImage.Save("C:/afterTask.bmp");
             //ImageSource thing = new ImageSource(convertedImage);
