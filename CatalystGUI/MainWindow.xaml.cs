@@ -38,27 +38,55 @@ namespace CatalystGUI
 
         #region Buttons: Exposure, Frame Rate, Count
         // when clicked, the value gets multiplied/divided by this amount:
-        private const double plusMinusMultiplier = 1.5;
+        private const double MULTIPLIER_HIGH = 1.5;
+        private const double MULTIPLIER_MED = 1.05;
+        private const double MULTIPLIER_LOW = 1.005;
 
         private void ExposurePlus(object sender, RoutedEventArgs e)
         {
-            if (!StartCamButton.IsEnabled) cameraStuff.ExposureTime = (uint)(cameraStuff.ExposureTime * plusMinusMultiplier);
+            if (!StartCamButton.IsEnabled) cameraStuff.ExposureTime = (uint)(cameraStuff.ExposureTime * MULTIPLIER_HIGH);
         }
 
         private void ExposureMinus(object sender, RoutedEventArgs e)
         {
-            if (!StartCamButton.IsEnabled) cameraStuff.ExposureTime = (uint)(cameraStuff.ExposureTime / plusMinusMultiplier);
+            if (!StartCamButton.IsEnabled) cameraStuff.ExposureTime = (uint)(cameraStuff.ExposureTime / MULTIPLIER_HIGH);
         }
 
+        // frame rates
+
+            // ---
         private void FrameRateMinus(object sender, RoutedEventArgs e)
         {
-            if (!StartCamButton.IsEnabled) cameraStuff.FrameRate /= plusMinusMultiplier;
+            if (!StartCamButton.IsEnabled) cameraStuff.FrameRate /= MULTIPLIER_LOW;
         }
 
+        private void FrameRateMinus2(object sender, RoutedEventArgs e)
+        {
+            if (!StartCamButton.IsEnabled) cameraStuff.FrameRate /= MULTIPLIER_MED;
+        }
+
+        private void FrameRateMinus3(object sender, RoutedEventArgs e)
+        {
+            if (!StartCamButton.IsEnabled) cameraStuff.FrameRate /= MULTIPLIER_HIGH;
+        }
+
+            // +++
         private void FrameRatePlus(object sender, RoutedEventArgs e)
         {
-            if (!StartCamButton.IsEnabled) cameraStuff.FrameRate *= plusMinusMultiplier;
+            if (!StartCamButton.IsEnabled) cameraStuff.FrameRate *= MULTIPLIER_LOW;
         }
+
+        private void FrameRatePlus2(object sender, RoutedEventArgs e)
+        {
+            if (!StartCamButton.IsEnabled) cameraStuff.FrameRate *= MULTIPLIER_MED;
+        }
+
+        private void FrameRatePlus3(object sender, RoutedEventArgs e)
+        {
+            if (!StartCamButton.IsEnabled) cameraStuff.FrameRate *= MULTIPLIER_HIGH;
+        }
+
+        // end frame rates
 
         private void FrameCountMinus(object sender, RoutedEventArgs e)
         {
@@ -196,6 +224,9 @@ namespace CatalystGUI
                 // clear text box
                 CommandLine.Clear();
 
+                // capture n imagges once frame rate matches bubble drop frequency
+
+
                 // saving images
                 if (command.ToLower().StartsWith("save") && cameraStuff != null)
                 {
@@ -232,7 +263,6 @@ namespace CatalystGUI
 
             }
         }
-
 
     }
 }

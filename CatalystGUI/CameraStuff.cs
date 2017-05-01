@@ -144,7 +144,7 @@ namespace CatalystGUI
                 currentCam.EndAcquisition(); // done with camera
 
                 // loop again to add burn in timestamps using Emgu and post on UI
-                var t_0 = timeStamps[0];
+                var t_0 = timeStamps[0] / 1000; // timestamp is in nanoseconds
                 Point timeStampPoint = new Point(10, 80); // bottom left corner of timestamp text
 
                 for (int k = 0; k < rawBytes.Count; k++)
@@ -154,7 +154,7 @@ namespace CatalystGUI
                     cvImage.Bytes = rawBytes[k];
                     // now add the text on the cvImage
                     CvInvoke.PutText(cvImage,
-                                    (timeStamps[k] - t_0) + " us",
+                                    (timeStamps[k] / 1000 - t_0) + " us",
                                     timeStampPoint, // bottom-left corner of first letter
                                     Emgu.CV.CvEnum.FontFace.HersheySimplex,
                                     3, // font scale
@@ -184,15 +184,23 @@ namespace CatalystGUI
         // saves images on SD card from the ImageSourceFrames collection
         public void SaveImages(string directoryName, int quality)
         {
-            string folderPath = "D:\\" + directoryName;
-            // creates new folder if it doesn't exist
-            System.IO.Directory.CreateDirectory(folderPath);
-            for (int k = 0; k < ImageSourceFrames.Count; k++)
+            try
             {
-                string path = folderPath + "\\" + k + ".jpg";
-                BitmapSource image = (BitmapSource)ImageSourceFrames[k];
-                SaveJPEG(path, quality, image);
+                string folderPath = "D:\\" + directoryName;
+                // creates new folder if it doesn't exist
+                System.IO.Directory.CreateDirectory(folderPath);
+                for (int k = 0; k < ImageSourceFrames.Count; k++)
+                {
+                    string path = folderPath + "\\" + k + ".jpg";
+                    BitmapSource image = (BitmapSource)ImageSourceFrames[k];
+                    SaveJPEG(path, quality, image);
+                } 
             }
+            catch (Exception e)
+            {
+                System.Windows.MessageBox.Show("Exception thrown in SaveImages() method in CameraStuff. Message: " + e.Message);
+            }
+
         }
         // default quality of 60
         public void SaveImages(string directoryName)
