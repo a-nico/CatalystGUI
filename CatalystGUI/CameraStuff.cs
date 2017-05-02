@@ -331,9 +331,9 @@ namespace CatalystGUI
         #region Frame Rate
         public double FrameRate
         {
-            get // in future maybe do private/public pair to avoid long decimals
+            get
             {
-                if (currentCam != null) return (uint)currentCam.AcquisitionFrameRate.Value;
+                if (currentCam != null) return (uint)(1000 * currentCam.AcquisitionFrameRate.Value) / 1000.0;
                 return 0.0;
             }
             set
