@@ -213,7 +213,7 @@ namespace CatalystGUI
         #endregion
 
 
-        // command line
+        // COMMAND LINE =)
         private void CommandLine_KeyDown(object sender, KeyEventArgs e)
         {
             // when "enter" is hit
@@ -225,6 +225,14 @@ namespace CatalystGUI
                 CommandLine.Clear();
 
                 // capture n imagges once frame rate matches bubble drop frequency
+                if (command.ToLower().StartsWith("frame") && cameraStuff != null)
+                {
+                    string[] tokens = command.Split(' ');
+                    if (tokens.Length != 2) return;
+                    int n;
+                    if (!int.TryParse(tokens[1], out n)) return;
+                    this.cameraStuff.FrameRate = this.cameraStuff.FrameRate / (1.0 + 1.0 / n);
+                }
 
 
                 // saving images
@@ -232,10 +240,8 @@ namespace CatalystGUI
                 {
                     // make sure a directory name was entered
                     string[] tokens = command.Split(' ');
-                    if (tokens.Length != 2)
-                    {
-                        return;
-                    }
+                    if (tokens.Length != 2) return;
+                    
                     cameraStuff.SaveImages(tokens[1]);
                         
                 }

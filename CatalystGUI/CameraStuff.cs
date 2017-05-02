@@ -333,8 +333,10 @@ namespace CatalystGUI
         {
             get
             {
-                if (currentCam != null) return (uint)(1000 * currentCam.AcquisitionFrameRate.Value) / 1000.0;
-                return 0.0;
+                if (currentCam != null)
+                    //return (uint)(1000 * currentCam.AcquisitionFrameRate.Value) / 1000.0;
+                    return currentCam.AcquisitionFrameRate.Value;
+                    return 0.0;
             }
             set
             {
