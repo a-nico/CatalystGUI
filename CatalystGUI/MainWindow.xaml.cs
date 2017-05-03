@@ -253,8 +253,8 @@ namespace CatalystGUI
 
                     string path = CameraStuff.DEFAULT_PATH_ROOT + tokens[1] + "\\Info.txt";
                     System.IO.StreamWriter textFile = new System.IO.StreamWriter(path);
-                    textFile.Write(GetState()); // current value of parameters to info file
-                        
+                    textFile.WriteLine(GetState()); // current value of parameters to info file
+                    textFile.Close();    
                 }
 
 
@@ -277,15 +277,30 @@ namespace CatalystGUI
                     }
                 }
 
-
             }
         }
 
         // Gets current value of all parameters (except needle pos.)
         string GetState()
         {
-            string time = DateTime.Now.ToString();
+            string s = "";
+            s = DateTime.Now.ToString() + "\n";
 
+            // pressure sensors
+            foreach (var p in this.arduinoStuff.Pressures)
+            {
+                var name = p.DisplayName; // sensor name
+                var value = p.Value; // pressure in whatever units it was written in
+                s += name + ": " + value + "\n";
+            }
+
+            // fan
+            s += "Fan Speed: " + arduinoStuff.Fan + "\n";
+
+            // LED Ring
+            s += "LED Ring on: " + arduinoStuff.LEDring + "\n";
+            Console.Write(s);
+            return s;
         }
 
     }

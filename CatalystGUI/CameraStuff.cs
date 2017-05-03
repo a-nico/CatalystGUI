@@ -154,12 +154,13 @@ namespace CatalystGUI
                     Image<Gray, Byte> cvImage = new Image<Gray, byte>(WIDTH, HEIGHT);
                     cvImage.Bytes = rawBytes[k];
                     // now add the text on the cvImage
-                    CvInvoke.PutText(cvImage,
+                    CvInvoke.PutText(
+                                    cvImage,
                                     (timeStamps[k] / 1000 - t_0) + " us",
                                     timeStampPoint, // bottom-left corner of first letter
                                     Emgu.CV.CvEnum.FontFace.HersheySimplex,
                                     3, // font scale
-                                    new Emgu.CV.Structure.MCvScalar(0), // font color specified using this werid thing
+                                    new Bgr(255, 0, 0).MCvScalar, // font color specified using this werid thing
                                     2 // thickness of lines used to draw text
                                     );
 
