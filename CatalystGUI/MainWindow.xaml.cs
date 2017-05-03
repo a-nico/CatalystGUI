@@ -158,6 +158,7 @@ namespace CatalystGUI
             this.arduinoStuff?.Connect(PortSelector);
         }
 
+        // FAN
         private void FanMinus_Click(object sender, RoutedEventArgs e)
         {
             if (this.arduinoStuff != null && arduinoStuff.Fan <= 20)
@@ -174,17 +175,23 @@ namespace CatalystGUI
             if (this.arduinoStuff != null) arduinoStuff.Fan += 5;
         }
 
+        // NEEDLE
         private void NeedlePositionMinus_Click(object sender, RoutedEventArgs e)
         {
-            if (this.arduinoStuff != null) arduinoStuff.MoveStepper("NeedlePositionMotor", -10);
+            if (this.arduinoStuff != null) arduinoStuff.MoveStepper("NeedlePositionMotor", -1000);
         }
 
         private void NeedlePositionPlus_Click(object sender, RoutedEventArgs e)
         {
-            if (this.arduinoStuff != null) arduinoStuff.MoveStepper("NeedlePositionMotor", 10);
+            if (this.arduinoStuff != null) arduinoStuff.MoveStepper("NeedlePositionMotor", 1000);
         }
 
-        // following three are from Items Control :
+        private void NeedleStop_Click(object sender, RoutedEventArgs e)
+        {
+            this.arduinoStuff.MoveStepper("NeedlePositionMotor", 0);
+        }
+
+        // ITEMS CONTROL (PRESSURES)
         private void PressurePlus_Click(object sender, RoutedEventArgs e)
         {
             Button button = (Button)sender;
@@ -203,7 +210,7 @@ namespace CatalystGUI
             this.arduinoStuff.MoveStepper(context.DisplayName, stepsPerClick); // ccw(+) decreases pressure
         }
 
-        // sets that motor to 0 steps (basically stops it)
+        // sets that motor to 0 steps - this is just for pressure regulator motors
         private void MotorStop_Click(object sender, RoutedEventArgs e)
         {
             Button button = (Button)sender;
@@ -241,8 +248,12 @@ namespace CatalystGUI
                     // make sure a directory name was entered
                     string[] tokens = command.Split(' ');
                     if (tokens.Length != 2) return;
-                    
+                    // tokens[1] is folder name
                     cameraStuff.SaveImages(tokens[1]);
+
+                    string path = CameraStuff.DEFAULT_PATH_ROOT + tokens[1] + "\\Info.txt";
+                    System.IO.StreamWriter textFile = new System.IO.StreamWriter(path);
+                    textFile.Write(GetState()); // current value of parameters to info file
                         
                 }
 
@@ -268,6 +279,13 @@ namespace CatalystGUI
 
 
             }
+        }
+
+        // Gets current value of all parameters (except needle pos.)
+        string GetState()
+        {
+            string time = DateTime.Now.ToString();
+
         }
 
     }

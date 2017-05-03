@@ -21,6 +21,7 @@ namespace CatalystGUI
     internal class CameraStuff : INotifyPropertyChanged
     {
         #region Misc. Class Fields
+        public static readonly string DEFAULT_PATH_ROOT = "D:\\"; // where stuff will be saved (SD card)
         const int WIDTH = 1280; // image format
         const int HEIGHT = 1024;
         private IManagedCamera currentCam; // the blackfly
@@ -186,7 +187,7 @@ namespace CatalystGUI
         {
             try
             {
-                string folderPath = "D:\\" + directoryName;
+                string folderPath = DEFAULT_PATH_ROOT + directoryName;
                 // creates new folder if it doesn't exist
                 System.IO.Directory.CreateDirectory(folderPath);
                 for (int k = 0; k < ImageSourceFrames.Count; k++)

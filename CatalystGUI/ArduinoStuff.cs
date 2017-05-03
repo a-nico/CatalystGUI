@@ -105,7 +105,6 @@ namespace CatalystGUI
         }
 
         // ItemsControl collection for pressures:
-        //private List<AnalogValue> _pressures;
         public List<AnalogValue> Pressures { get; set; }
         
         #endregion
