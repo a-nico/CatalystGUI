@@ -213,7 +213,7 @@ namespace CatalystGUI
         // enqueues tokens coming in from serial
         void GetSerialTokens()
         {
-            while (null != this.incomingSerialBuffer && "" != incomingSerialBuffer)
+            while (null != this.incomingSerialBuffer && "" != this.incomingSerialBuffer)
             {
                 if (incomingSerialBuffer[0] == ';')
                 {
@@ -240,7 +240,7 @@ namespace CatalystGUI
                 // elements[0] possibilities are: A (analog pin reading), D (digital pin reading)
                 switch ((elements[0])[0])
                 {
-                    case 'A':
+                    case 'A': // analog reads FROM ARDUINO'S BUILT IN ADC
                         {
                             // should split into [A], [pin], [value]
                             int pin; int value; // placeholders
@@ -263,7 +263,7 @@ namespace CatalystGUI
                             break;
                         }
 
-                    case 'D':
+                    case 'D': // digital reads
                         {
                             // should split into [D], [pin], [value (0/1)]
                             int pin; int value; // placeholders
@@ -275,6 +275,13 @@ namespace CatalystGUI
                                 this.digitalValues[pin] = value;
 
                             }
+
+                            break;
+                        }
+
+                    case 'C': // reads from ADC ADS1115
+                        {
+                            // should split into [C], [channel], [value]
 
                             break;
                         }
@@ -340,8 +347,9 @@ namespace CatalystGUI
         // takes raw data from analog-digital converter and gives pressure (PSI or kPa depending on boolean property)
         float ConvertRawToPressure(int raw)
         {
+            int x = 26667; // count at 5.0 volts *VERIFY
             // the honeywell sensors have range .1(1023) to .9(1023) which map to 0-30 psi
-            float psi = 30 * ((float)raw - 1023 / 10) / (1023 * 8 / 10);
+            float psi = 30 * ((float)raw - x / 10) / (x * 8 / 10);
 
             if (this.SIunits)
             { // 1 psi = 6.89476 kPa

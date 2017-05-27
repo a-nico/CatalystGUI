@@ -36,7 +36,6 @@ namespace CatalystGUI
                 _UIimage = value;
                 NotifyPropertyChanged("UIimage");
             }
-
         }
         # endregion
 

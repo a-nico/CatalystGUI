@@ -1,3 +1,15 @@
+#include "ADS1115.h"
+#include <Wire.h>
+#include <SPI.h>
+#include "MAX31855.h"
+
+// Thermocouple Reader
+// on MEGA use:
+// pin 50 for DO (MISO - data from slave to master) 
+// 52 for CLK (SCK - serial clock)
+#define CS   4 // chip select pin
+MAX31855 tc(CS); // thermocouple object ref
+ADS1115 *ads; // ADC object pointer
 
 // Stepper Stuff
 #define numOfMotors 4
@@ -16,8 +28,11 @@ char commandType = 0; // the letter to say which function to call
 char buf[15];
 int idx  = 0; // buffer index
 int valuesArrayIndex = 0;
-int valuesArray[5] = {0}; // numbers to be passed to functions (e.g. sensor #, fan percent, temperature, pressure)
+int valuesArray[5] = {}; // numbers to be passed to functions (e.g. sensor #, fan percent, temperature, pressure)
+int16_t ADCdata[4] = {}; // data from ADS1115, signed 16 bit
 
+
+#define heaterMOSFET 7
 #define solenoidPin 4
 #define fanOnOffPin 5
 #define LEDringPin 6
@@ -46,20 +61,26 @@ void setup()
   // duty cycle will be OCRBxN / ICRx, look on datasheet or experiment
   
   Serial.begin(115200); // max baud rate
+  ads = new ADS1115();
+  ads->begin();
+  
 }
 
 void loop()
 {
-
 UpdateCommands();
-//delay(10);
-//stepper(1);
-//delay(10);
-//stepper(0);
+
+// moves steppers
 for (int m = 0; m < numOfMotors; m++)
 {
   stepper(m);
 }
+
+// safe heater
+if (tc.readCelsius() > 260) digitalWrite(heaterMOSFET, LOW);
+
+// update ADC readings
+ads->updateAll(ADCdata); // updates the array, non-blocking 
 
 
 }
@@ -86,7 +107,8 @@ void UpdateCommands()
     
     case 1:    // saw a "%" char, so looks for command
       // list here all allowable commantType chars:
-      if ('A' == currentChar || 'M' == currentChar || 'F' == currentChar || 'W' == currentChar || 'R' == currentChar)
+      if ('A' == currentChar || 'M' == currentChar || 'F' == currentChar 
+          || 'W' == currentChar || 'R' == currentChar || 'T' == currentChar || 'C' == currentChar)
       {
         commandType = currentChar;
         parseState = 2;
@@ -154,11 +176,11 @@ void doTasks(char command, int values[])
   case 'W': 
     // gives direct control to digital pins output (write). Careful to be a writeable pin (pinMode)
     // %W,8,1; means pin8 HIGH, %W,8,0; is pin8 LOW
-    if (0 == values[1]) 
+    if (values[1] == 0) 
     {
       digitalWrite(values[0], LOW);
     } 
-    else if (1 == values[1]) 
+    else if (values[1] == 1) 
     {
       digitalWrite(values[0], HIGH);
     }
@@ -166,6 +188,23 @@ void doTasks(char command, int values[])
 
   case 'R': // reads digital pin. %R7; reads state of digital pin7, returns 1 or 0 for HIGH/LOW
     Serial.print( "D," + (String)values[0] + "," + (String)digitalRead(values[0]) + ";");
+
+  case 'T': // T0; returns internal temp, %T1; returns first thermocouple
+    if (values[0] == 0) 
+    { // give internal temp
+      Serial.print("T," + values[0] + (String)((int)tc.readInternal()) + ";");
+    } 
+    else if (values[0] == 1) 
+    {
+      Serial.print("T," + values[0] + (String)tc.readCelsius() + ";");
+    }
+    break;
+    
+  case 'C': // ADS converter readings from global array: %C1; returns ADCdata[1]
+    int ch = values[0];
+    if (ch > 3 || ch < 0) break;
+    Serial.print("C," + ch + (String)ADCdata[ch] + ";");
+    break;
     
   default: break;
  }
