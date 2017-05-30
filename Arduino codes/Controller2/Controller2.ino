@@ -8,8 +8,8 @@
 // pin 50 for DO (MISO - data from slave to master) 
 // 52 for CLK (SCK - serial clock)
 #define CS   4 // chip select pin
-MAX31855 tc(CS); // thermocouple object ref
-ADS1115 *ads; // ADC object pointer
+MAX31855 tc = MAX31855(CS); // thermocouple object ref
+ADS1115 ads = ADS1115(); // ADC object
 
 // Stepper Stuff
 #define numOfMotors 4
@@ -39,6 +39,7 @@ int16_t ADCdata[4] = {}; // data from ADS1115, signed 16 bit
 
 void setup() 
 {
+  pinMode(heaterMOSFET, OUTPUT);
   pinMode(solenoidPin, OUTPUT);
   pinMode(LEDringPin, OUTPUT);
   pinMode(fanOnOffPin, OUTPUT);
@@ -61,8 +62,8 @@ void setup()
   // duty cycle will be OCRBxN / ICRx, look on datasheet or experiment
   
   Serial.begin(115200); // max baud rate
-  ads = new ADS1115();
-  ads->begin();
+//  ads = new ADS1115();
+  ads.begin();
   
 }
 
@@ -77,10 +78,10 @@ for (int m = 0; m < numOfMotors; m++)
 }
 
 // safe heater
-if (tc.readCelsius() > 260) digitalWrite(heaterMOSFET, LOW);
+if (tc.readCelsius() > 90) analogWrite(heaterMOSFET, 0);
 
 // update ADC readings
-ads->updateAll(ADCdata); // updates the array, non-blocking 
+ads.updateAll(ADCdata); // updates the array, non-blocking 
 
 
 }
@@ -162,6 +163,7 @@ void doTasks(char command, int values[])
     //    use PWM on MOSFET gate instead
     {
       if (values[0] > 100) values[0] = 100;
+      if (values[0] < 0) values[0] = 0;
       int speedByte = values[0] * 255 / 100; // so 100 is 255 (I lose some resolution but it's OK)
       analogWrite(fanOnOffPin, speedByte);
       
@@ -201,11 +203,12 @@ void doTasks(char command, int values[])
     break;
     
   case 'C': // ADS converter readings from global array: %C1; returns ADCdata[1]
-    int ch = values[0];
-    if (ch > 3 || ch < 0) break;
-    Serial.print("C," + ch + (String)ADCdata[ch] + ";");
-    break;
-    
+    {
+      int ch = values[0];
+      if (ch > 3 || ch < 0) break;
+      Serial.print("C," + ch + (String)ADCdata[ch] + ";");
+      break;
+    }
   default: break;
  }
 

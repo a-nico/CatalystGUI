@@ -41,6 +41,36 @@ namespace CatalystGUI
 
         #region  Properties for Control/UI
         public bool SIunits { get; set; } // true = SI (kPa, microns), false = standard (psi, thou)
+         
+        int _temperature1;
+        int Temperature1
+        {
+            get
+            {
+                return _temperature1;
+            }
+            set
+            {
+                _temperature1 = value;
+                NotifyPropertyChanged("Temperature1");
+            }
+        }
+
+        int _potentiometer;
+        public int Potentiometer // maybe change it to Needle Position or sm
+        {
+            get
+            {
+                return _potentiometer;
+            }
+            set
+            {
+                _potentiometer = value;
+                NotifyPropertyChanged("Potentiometer");
+
+            }
+        }
+
         public bool LEDring // true = on
         {
             get
@@ -52,6 +82,7 @@ namespace CatalystGUI
                 this.serialOutgoingQueue.Enqueue(String.Format("%W{0},{1};", LED_PIN, value ? 1 : 0));
             }
         }
+
         public bool Solenoid // true = current through solenoid (valve open)
         {
             get
@@ -63,6 +94,7 @@ namespace CatalystGUI
                 this.serialOutgoingQueue.Enqueue(String.Format("%W{0},{1};", SOLENOID_PIN, value ? 1 : 0));
             }
         }
+
         int _fan;
         public int Fan
         {
@@ -72,35 +104,9 @@ namespace CatalystGUI
             }
             set
             {
-                if (value == 0)
-                {   // just switch the MOSFET off
-                    _fan = 0;
-                    this.serialOutgoingQueue.Enqueue(String.Format("%W{0},{1};", FAN_PIN, _fan));
-                    goto Notify;
-                }
-
-                if (digitalValues[FAN_PIN] == 0)
-                {   // getting here means value != 0, but fan shows as OFF
-                    // switch on the fan MOSFET
-                    this.serialOutgoingQueue.Enqueue(String.Format("%W{0},{1};", FAN_PIN, 1));
-                }
-
-                if (value >= 20 && value < 100)
-                {
-                    _fan = value;
-                }
-                else if (value >= 100)
-                {   // max out at 100 independent of value
-                    _fan = 100;
-                }
-                else
-                {   // anything 1-20 sets fan to 20. To set to zero, have to enter "0"
-                    _fan = 20;
-                }
+                _fan = value;
                 this.serialOutgoingQueue.Enqueue(String.Format("%F{0};", _fan));
-
-
-                Notify: NotifyPropertyChanged("Fan");
+                NotifyPropertyChanged("Fan");
             }
         }
 
@@ -241,53 +247,89 @@ namespace CatalystGUI
                 switch ((elements[0])[0])
                 {
                     case 'A': // analog reads FROM ARDUINO'S BUILT IN ADC
+                    {
+                        // should split into [A], [pin], [value]
+                        int pin; int value; // placeholders
+
+                        if (int.TryParse(elements[1], out pin)
+                            && int.TryParse(elements[2], out value))
                         {
-                            // should split into [A], [pin], [value]
-                            int pin; int value; // placeholders
+                            // update the analogValues array with this new data
+                            this.analogValues[pin] = value;
 
-                            if (int.TryParse(elements[1], out pin)
-                                && int.TryParse(elements[2], out value))
-                            {
-                                // update the analogValues array with this new data
-                                this.analogValues[pin] = value;
-
-                                // if pressure sensor is attached to this pin, update Pressures collection elements
-                                foreach (var p in this.Pressures)
-                                { // inefficient but I don't know how to map "name" to Property.
-                                    if (p.Pin == pin)
-                                    {
-                                        p.Value = ConvertRawToPressure(value);
-                                    }
-                                }
-                            }
-                            break;
+                            //// if pressure sensor is attached to this pin, update Pressures collection elements
+                            //foreach (var p in this.Pressures)
+                            //{ // inefficient but I don't know how to map "name" to Property.
+                            //    if (p.Pin == pin)
+                            //    {
+                            //        p.Value = ConvertRawToPressure(value);
+                            //    }
+                            //}
                         }
+                        break;
+                    }
 
                     case 'D': // digital reads
-                        {
-                            // should split into [D], [pin], [value (0/1)]
-                            int pin; int value; // placeholders
+                    {
+                        // should split into [D], [pin], [value (0/1)]
+                        int pin; int value; // placeholders
 
-                            if (int.TryParse(elements[1], out pin)
-                                && int.TryParse(elements[2], out value))
+                        if (int.TryParse(elements[1], out pin)
+                            && int.TryParse(elements[2], out value))
+                        {
+                            // update digitalValues array that holds latest data
+                            this.digitalValues[pin] = value;
+
+                        }
+
+                        break;
+                    }
+
+                    case 'C': // from ADS1115
+                    {
+                        // should split into [C], [channel/pin], [value]
+                        // arduino guarantees that 0 <= channel/pin <= 3
+                        int pin; int value; // placeholders
+
+                        if (int.TryParse(elements[1], out pin)
+                            && int.TryParse(elements[2], out value))
+                        {
+                            // channel/pin 3 is the potentiometer
+                            if (pin == 3)
                             {
-                                // update digitalValues array that holds latest data
-                                this.digitalValues[pin] = value;
-
+                                _potentiometer = value;
                             }
-
-                            break;
+                            else // it's a pressure, figure out which one and update the object's Value property
+                            {
+                                foreach (var p in Pressures)
+                                {
+                                    if (p.Pin == pin)
+                                    {
+                                            p.Value = ConvertRawToPressure(value);
+                                        }
+                                }
+                            }
                         }
 
-                    case 'C': // reads from ADC ADS1115
+                        break;
+                    }
+
+                    case 'T':
+                    {
+                        // T,1,25; means TC#1 is at 25 Celsius
+                        int thermocoupleNumber; int tempCelsius; // placeholders
+
+                        if (int.TryParse(elements[1], out thermocoupleNumber)
+                            && int.TryParse(elements[2], out tempCelsius))
                         {
-                            // should split into [C], [channel], [value]
-
-                            break;
+                            _temperature1 = tempCelsius;   
                         }
+
+                        break;
+                    }
 
                     default:
-                        // was some garbage identifier, token is popped so don't worry
+                        // was some garbage identifier, token is dequeued so don't worry
                         break;
                 }
             }
@@ -347,9 +389,9 @@ namespace CatalystGUI
         // takes raw data from analog-digital converter and gives pressure (PSI or kPa depending on boolean property)
         float ConvertRawToPressure(int raw)
         {
-            int x = 26667; // count at 5.0 volts *VERIFY
-            // the honeywell sensors have range .1(1023) to .9(1023) which map to 0-30 psi
-            float psi = 30 * ((float)raw - x / 10) / (x * 8 / 10);
+            float bitstAt5V = 26550; // count at 5.0 volts
+            // the honeywell sensors have range .1(bitstAt5V) to .9(bitstAt5V) which map to 0-30 psi
+            float psi = 30.0f * (raw - bitstAt5V / 10) / (bitstAt5V * 8 / 10);
 
             if (this.SIunits)
             { // 1 psi = 6.89476 kPa

@@ -6,11 +6,11 @@ namespace CatalystGUI
     {
         public string DisplayName { get; set; } // e.g. "Ndl P"
 
-        public int Pin { get; set; } // the analog pin it gets data from
+        public int Pin { get; set; } // pin or "channel" on ADS1115
 
         float[] valuesArray; // pressure in whatever units added in array to take moving average
         int i;
-        const int ARRAY_SIZE = 10;
+        const int ARRAY_SIZE = 5; // # of readings do moving average
         public float Value
         {
             get
