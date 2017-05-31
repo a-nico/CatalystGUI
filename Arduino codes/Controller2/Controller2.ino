@@ -7,7 +7,7 @@
 // on MEGA use:
 // pin 50 for DO (MISO - data from slave to master) 
 // 52 for CLK (SCK - serial clock)
-#define CS   51 // chip select pin
+#define CS   48 // chip select pin (don't use 51, won't work)
 MAX31855 tc = MAX31855(CS); // thermocouple object ref
 ADS1115 ads = ADS1115(); // ADC object
 
@@ -53,16 +53,15 @@ void setup()
   }
   // set registers for timer3
   // pins 2, 3, 5 use timer3, see https://arduino-info.wikispaces.com/Timers-Arduino
-//  TCCR3A = B10100010;
-//  TCCR3B = B00010001; // 001 (no prescale)
-//  ICR3 = 320; // TOP = 320 for 25 kHZ
-//  OCR3B = 32; // pin 2 goes by OCR3B. Start fan low.
+  TCCR3A = B10100010;
+  TCCR3B = B00010001; // 001 (no prescale)
+  ICR3 = 320; // TOP = 320 for 25 kHZ
+  OCR3B = 32; // pin 2 goes by OCR3B. Start fan low.
   pinMode(2, OUTPUT);
   // frequency is 16,000,000 / prescale / ICRx / 2
   // duty cycle will be OCRBxN / ICRx, look on datasheet or experiment
   
   Serial.begin(115200); // max baud rate
-//  ads = new ADS1115();
   ads.begin();
   
 }
@@ -78,7 +77,7 @@ for (int m = 0; m < numOfMotors; m++)
 }
 
 // safe heater
-if (tc.readCelsius() > 90) analogWrite(heaterMOSFET, 0);
+if (tc.readCelsius() > 45) analogWrite(heaterMOSFET, 0);
 
 // update ADC readings
 ads.updateAll(ADCdata); // updates the array, non-blocking 
@@ -157,17 +156,9 @@ void doTasks(char command, int values[])
     break;
     
   case 'F': // sets fan speed percent (e.g.  %F90; sets fan to 90%)
-//    if (values[0] > 100) values[0] = 100;
-//    OCR3B = values[0] * ICR3 / 100; // pin 2 on MEGA
-    // ** I'm ditching the PWM method because it sucks - won't allow low fan speeds below 50%
-    //    use PWM on MOSFET gate instead
-  {
     if (values[0] > 100) values[0] = 100;
     if (values[0] < 0) values[0] = 0;
-    int speedByte = values[0] * 255 / 100; // so 100 is 255 (I lose some resolution but it's OK)
-    analogWrite(fanOnOffPin, speedByte);
-    
-  }
+    OCR3B = values[0] * ICR3 / 100; // pin 2 on MEGA
     break;
 
   case 'M': // %M(a),(b); requests motor (a) to move # of steps (b) (e.g.  %M2,-100; makes motor 2 go 100 steps clockwise)

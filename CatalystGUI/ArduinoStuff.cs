@@ -124,6 +124,7 @@ namespace CatalystGUI
         }
 
         int _fan;
+
         public int Fan
         {
             get
@@ -132,21 +133,34 @@ namespace CatalystGUI
             }
             set
             {
-                if (value > 100)
-                {
-                    _fan = 100;
-                }
-                else if (value < 0)
-                {
+                if (value == 0)
+                {   // just switch the MOSFET off
                     _fan = 0;
+                    this.serialOutgoingQueue.Enqueue(String.Format("%W{0},{1};", FAN_PIN, _fan));
+                    goto Notify;
                 }
-                else
+
+                if (digitalValues[FAN_PIN] == 0)
+                {   // getting here means value != 0, but fan shows as OFF
+                    // switch on the fan MOSFET
+                    this.serialOutgoingQueue.Enqueue(String.Format("%W{0},{1};", FAN_PIN, 1));
+                }
+
+                if (value >= 20 && value < 100)
                 {
                     _fan = value;
                 }
-
+                else if (value >= 100)
+                {   // max out at 100 independent of value
+                    _fan = 100;
+                }
+                else
+                {   // anything 1-20 sets fan to 20. To set to zero, have to enter "0"
+                    _fan = 20;
+                }
                 this.serialOutgoingQueue.Enqueue(String.Format("%F{0};", _fan));
-                NotifyPropertyChanged("Fan");
+
+                Notify: NotifyPropertyChanged("Fan");
             }
         }
 
@@ -250,7 +264,6 @@ namespace CatalystGUI
                 string token = this.serialOutgoingQueue.Dequeue();
                 this.usb.Write(token);
                 Console.WriteLine(token);
-                
             }
 
             // calls for ADS1115 readings 

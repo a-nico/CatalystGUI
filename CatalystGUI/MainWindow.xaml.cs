@@ -161,7 +161,14 @@ namespace CatalystGUI
         // FAN
         private void FanMinus_Click(object sender, RoutedEventArgs e)
         {
-            if (this.arduinoStuff != null ) arduinoStuff.Fan -= 5;
+            if (this.arduinoStuff != null && arduinoStuff.Fan <= 20)
+            {
+                arduinoStuff.Fan = 0;
+            }
+            else
+            {
+                arduinoStuff.Fan -= 5;
+            }
         }
 
         private void FanPlus_Click(object sender, RoutedEventArgs e)
