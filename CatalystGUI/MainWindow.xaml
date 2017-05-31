@@ -66,10 +66,10 @@
 
             <!--needle control-->
             <StackPanel Grid.Row="3" Margin="0,5,0,0" Orientation="Horizontal">
-                <TextBlock Text="Ndl x" Width="100"/>
-                <!--<TextBlock  Text="{Binding Fan}" MinWidth="40"/>-->
+                <TextBlock Text="Ndl x" Width="50"/>
+                <TextBlock  Text="{Binding Potentiometer}" MinWidth="50"/>
                 <Button Click="NeedlePositionMinus_Click" Content="-" Width="20"/>
-                <TextBox Text="{Binding Potentiometer}" MinWidth="40"/>
+                <TextBox Text="set" MinWidth="40"/>
                 <Button Click="NeedlePositionPlus_Click" Content="+" Width="20"/>
                 <Button Click="NeedleStop_Click" Content="Stop"/>
             </StackPanel>

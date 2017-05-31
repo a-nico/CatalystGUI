@@ -9,7 +9,7 @@
 // pin 50 for DO (MISO - data from slave to master) 
 // 52 for CLK (SCK - serial clock)
 
-MAX31855 tc(CS);
+MAX31855 tc(48);
 
 
 void setup() 
@@ -20,19 +20,17 @@ void setup()
 
 void loop() 
 {
-  long t0, t1;
-  t0 = millis();
-  //tc.readCelsius();
-  
-  for (uint16_t k = 0; k < 100; k ++)
-  {
-    tc.readCelsius();
-  }
-  
-  t1 = millis();
-  Serial.println(t1 - t0);
-  delay(1000);
-  
+//  long t0, t1;
+//  t0 = millis();
+//  //tc.readCelsius();
+//  
+//  for (uint16_t k = 0; k < 100; k ++)
+//  {
+//    tc.readCelsius();
+//  }
+//  
+//  t1 = millis();
+//  Serial.println(t1 - t0);
   Serial.println(tc.readCelsius());
-  
+  delay(500);
 }

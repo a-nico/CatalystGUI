@@ -89,7 +89,7 @@ namespace CatalystGUI
         {
             get
             {
-                return _potentiometer;
+                return PotentiometerToMicrons(_potentiometer);
             }
             set
             {
@@ -275,8 +275,7 @@ namespace CatalystGUI
             // temperature control
             this.usb.Write(String.Format("%T{0};", 1)); // calls for T1 reading
             ControlTemperature(_temperature1Set, _temperature1);
-
-
+            
         }
         
         // updates state of: fan, solenoid, LED ring.
@@ -373,7 +372,7 @@ namespace CatalystGUI
                             // channel/pin 3 is the potentiometer
                             if (pin == 3)
                             {
-                                _potentiometer = value;
+                                Potentiometer = value;
                             }
                             else // it's a pressure, figure out which one and update the object's Value property
                             {
@@ -462,7 +461,7 @@ namespace CatalystGUI
 
         }
         
-        // takes raw data from analog-digital converter and gives pressure (PSI or kPa depending on boolean property)
+        // takes raw data from ADS1115 and gives pressure (PSI or kPa)
         float ConvertRawToPressure(int raw)
         {
             float bitstAt5V = 26550; // count at 5.0 volts
@@ -474,6 +473,12 @@ namespace CatalystGUI
                 return psi * 6.89476f;
             }
             return psi;
+        }
+
+        // turn potentiometer reading into needle distance (microns)
+        int PotentiometerToMicrons(int analogCounts)
+        {
+            return (int)(0.2430 * analogCounts - 4508.9);
         }
 
         #region PropertyChanged stuff
