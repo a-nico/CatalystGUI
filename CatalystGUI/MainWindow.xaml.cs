@@ -161,13 +161,7 @@ namespace CatalystGUI
         // FAN
         private void FanMinus_Click(object sender, RoutedEventArgs e)
         {
-            if (this.arduinoStuff != null && arduinoStuff.Fan <= 20)
-            {
-                arduinoStuff.Fan = 0;
-            } else if (this.arduinoStuff != null)
-            {
-                arduinoStuff.Fan -= 5;
-            }
+            if (this.arduinoStuff != null ) arduinoStuff.Fan -= 5;
         }
 
         private void FanPlus_Click(object sender, RoutedEventArgs e)
@@ -175,20 +169,25 @@ namespace CatalystGUI
             if (this.arduinoStuff != null) arduinoStuff.Fan += 5;
         }
 
+        private void FanStop_Click(object sender, RoutedEventArgs e)
+        {
+            if (this.arduinoStuff != null)  this.arduinoStuff.Fan = 0;
+        }
+
         // NEEDLE
         private void NeedlePositionMinus_Click(object sender, RoutedEventArgs e)
         {
-            if (this.arduinoStuff != null) arduinoStuff.MoveStepper("NeedlePositionMotor", -1000);
+            arduinoStuff?.MoveStepper("NeedlePositionMotor", -1000);
         }
 
         private void NeedlePositionPlus_Click(object sender, RoutedEventArgs e)
         {
-            if (this.arduinoStuff != null) arduinoStuff.MoveStepper("NeedlePositionMotor", 1000);
+            arduinoStuff?.MoveStepper("NeedlePositionMotor", 1000);
         }
 
         private void NeedleStop_Click(object sender, RoutedEventArgs e)
         {
-            this.arduinoStuff.MoveStepper("NeedlePositionMotor", 0);
+            this.arduinoStuff?.MoveStepper("NeedlePositionMotor", 0);
         }
 
         // ITEMS CONTROL (PRESSURES)
@@ -200,14 +199,14 @@ namespace CatalystGUI
             AnalogValue context = (AnalogValue)button.DataContext;
 
             // move the appropriate motor to increase pressure
-            arduinoStuff.MoveStepper(context.DisplayName, -stepsPerClick); // clockwise (-) increases pressure
+            arduinoStuff?.MoveStepper(context.DisplayName, -stepsPerClick); // clockwise (-) increases pressure
         }
 
         private void PressureMinus_Click(object sender, RoutedEventArgs e)
         {   // see Plus method for comments
             Button button = (Button)sender;
             AnalogValue context = (AnalogValue)button.DataContext;
-            this.arduinoStuff.MoveStepper(context.DisplayName, stepsPerClick); // ccw(+) decreases pressure
+            this.arduinoStuff?.MoveStepper(context.DisplayName, stepsPerClick); // ccw(+) decreases pressure
         }
 
         // sets that motor to 0 steps - this is just for pressure regulator motors
@@ -215,7 +214,23 @@ namespace CatalystGUI
         {
             Button button = (Button)sender;
             AnalogValue context = (AnalogValue)button.DataContext;
-            this.arduinoStuff.MoveStepper(context.DisplayName, 0);
+            this.arduinoStuff?.MoveStepper(context.DisplayName, 0);
+        }
+
+        // TEMPERATURE
+        private void Temp1Plus_Click(object sender, RoutedEventArgs e)
+        {
+            if (this.arduinoStuff != null)  this.arduinoStuff.Temperature1Set += 5; // 5 deg C
+        }
+
+        private void Temp1Minus_Click(object sender, RoutedEventArgs e)
+        {
+            if (this.arduinoStuff != null)  this.arduinoStuff.Temperature1Set -= 5; // 5 deg C
+        }
+
+        private void Temp1Stop_Click(object sender, RoutedEventArgs e)
+        {
+            if (this.arduinoStuff != null) this.arduinoStuff.Temperature1Set = 0;
         }
         #endregion
 
@@ -302,6 +317,7 @@ namespace CatalystGUI
             Console.Write(s);
             return s;
         }
+
 
     }
 }

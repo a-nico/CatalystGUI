@@ -7,7 +7,7 @@
 // on MEGA use:
 // pin 50 for DO (MISO - data from slave to master) 
 // 52 for CLK (SCK - serial clock)
-#define CS   4 // chip select pin
+#define CS   51 // chip select pin
 MAX31855 tc = MAX31855(CS); // thermocouple object ref
 ADS1115 ads = ADS1115(); // ADC object
 
@@ -108,7 +108,7 @@ void UpdateCommands()
     
     case 1:    // saw a "%" char, so looks for command
       // list here all allowable commantType chars:
-      if ('A' == currentChar || 'M' == currentChar || 'F' == currentChar 
+      if ('A' == currentChar || 'M' == currentChar || 'F' == currentChar || 'H' == currentChar
           || 'W' == currentChar || 'R' == currentChar || 'T' == currentChar || 'C' == currentChar)
       {
         commandType = currentChar;
@@ -151,9 +151,9 @@ void doTasks(char command, int values[])
  switch (command)
  {
   case 'A': // reads analog pin (e.g.  %A0;)
-    {// has only one value (value[0]) which is the pin to read
+  {// has only one value (value[0]) which is the pin to read
     Serial.print( "A," + (String)values[0] + "," + analogRead(values[0]) + ";");
-    }
+  }
     break;
     
   case 'F': // sets fan speed percent (e.g.  %F90; sets fan to 90%)
@@ -161,13 +161,13 @@ void doTasks(char command, int values[])
 //    OCR3B = values[0] * ICR3 / 100; // pin 2 on MEGA
     // ** I'm ditching the PWM method because it sucks - won't allow low fan speeds below 50%
     //    use PWM on MOSFET gate instead
-    {
-      if (values[0] > 100) values[0] = 100;
-      if (values[0] < 0) values[0] = 0;
-      int speedByte = values[0] * 255 / 100; // so 100 is 255 (I lose some resolution but it's OK)
-      analogWrite(fanOnOffPin, speedByte);
-      
-    }
+  {
+    if (values[0] > 100) values[0] = 100;
+    if (values[0] < 0) values[0] = 0;
+    int speedByte = values[0] * 255 / 100; // so 100 is 255 (I lose some resolution but it's OK)
+    analogWrite(fanOnOffPin, speedByte);
+    
+  }
     break;
 
   case 'M': // %M(a),(b); requests motor (a) to move # of steps (b) (e.g.  %M2,-100; makes motor 2 go 100 steps clockwise)
@@ -194,21 +194,30 @@ void doTasks(char command, int values[])
   case 'T': // T0; returns internal temp, %T1; returns first thermocouple
     if (values[0] == 0) 
     { // give internal temp
-      Serial.print("T," + values[0] + (String)((int)tc.readInternal()) + ";");
+      Serial.print("T," + (String)values[0] + "," + (String)((int)tc.readInternal()) + ";");
     } 
     else if (values[0] == 1) 
     {
-      Serial.print("T," + values[0] + (String)tc.readCelsius() + ";");
+      Serial.print("T," + (String)values[0] + "," + (String)tc.readCelsius() + ";");
     }
     break;
     
   case 'C': // ADS converter readings from global array: %C1; returns ADCdata[1]
+  {
+    int ch = values[0];
+    if (ch > 3 || ch < 0) break;
+    Serial.print("C," + (String)ch + "," + (String)ADCdata[ch] + ";");
+    break;
+  }
+
+  case 'H': // actuates the heaters (MOSFET PWM) %H0,235; heater 0, at 235/255 duty cycle
+    if (values[1] > 255 || values[1] < 0) 
     {
-      int ch = values[0];
-      if (ch > 3 || ch < 0) break;
-      Serial.print("C," + ch + (String)ADCdata[ch] + ";");
-      break;
+      values[1] = 0; // any bad signal - switch off the heater for safety.
     }
+    analogWrite(heaterMOSFET, values[1]); // if I get more heaters, turn heaterMOSFET into array
+    break;
+    
   default: break;
  }
 

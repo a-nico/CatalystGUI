@@ -26,6 +26,7 @@ namespace CatalystGUI
         #endregion
 
         #region Misc fields
+        const int MAX_TEMP = 220; // limit on how much you can set temp
         public const int BAUD_RATE = 115200;
         public const int FAST_TIMER_TIMESPAN = 200; // 5 Hz
         public const int SLOW_TIMER_TIMESPAN = 500; // 2 Hz
@@ -43,7 +44,7 @@ namespace CatalystGUI
         public bool SIunits { get; set; } // true = SI (kPa, microns), false = standard (psi, thou)
          
         int _temperature1;
-        int Temperature1
+        public int Temperature1
         {
             get
             {
@@ -53,6 +54,33 @@ namespace CatalystGUI
             {
                 _temperature1 = value;
                 NotifyPropertyChanged("Temperature1");
+            }
+        }
+
+        int _temperature1Set;
+        public int Temperature1Set
+        {
+            get
+            {
+                return _temperature1Set;
+            }
+            set
+            {
+                
+                if (value > MAX_TEMP) // max it out at 220 for now
+                {
+                    _temperature1Set = MAX_TEMP;
+                }
+                else if (value < 0)
+                {
+                    _temperature1Set = 0;
+                }
+                else
+                {
+                    _temperature1Set = value;
+                }
+
+                NotifyPropertyChanged("Temperature1Set");
             }
         }
 
@@ -104,7 +132,19 @@ namespace CatalystGUI
             }
             set
             {
-                _fan = value;
+                if (value > 100)
+                {
+                    _fan = 100;
+                }
+                else if (value < 0)
+                {
+                    _fan = 0;
+                }
+                else
+                {
+                    _fan = value;
+                }
+
                 this.serialOutgoingQueue.Enqueue(String.Format("%F{0};", _fan));
                 NotifyPropertyChanged("Fan");
             }
@@ -181,6 +221,21 @@ namespace CatalystGUI
 
             }
         }
+
+        public void ControlTemperature(int T_Set, int T_Actual) //if controlling more than 1, this needs to b redone
+        {
+            int delta = T_Set - T_Actual;
+            
+            if (delta > 0)
+            {   // too cold
+                int signal = delta > 5 ? 255 : 255 * delta / 6; // slow it down when it gets within 5 deg C
+                this.usb.Write(String.Format("%H0,{0};", signal));
+            }
+            else
+            { // too hot -> off
+                this.usb.Write(String.Format("%H0,{0};", 0));
+            }
+        }
         #endregion
 
         #region Timer Stuff - Serial Outgoing
@@ -188,7 +243,8 @@ namespace CatalystGUI
 
         // updates pressures, processes outgoing queue: moves steppers, sets fan, solenoid, LED ring
         private void FastLoop_Tick(object sender, EventArgs e)
-        { 
+        {
+            // take care of outgoing queue
             while (serialOutgoingQueue.Count > 0)
             {
                 string token = this.serialOutgoingQueue.Dequeue();
@@ -197,10 +253,17 @@ namespace CatalystGUI
                 
             }
 
-            foreach (var p in Pressures)
-            {   // writing to USB makes arduino return that analog reading which gets handled by incoming task
-                this.usb.Write(String.Format("%A{0};", p.Pin));
+            // calls for ADS1115 readings 
+            for (uint ch = 0; ch < 4; ch++)
+            {
+                this.usb.Write(String.Format("%C{0};", ch));
             }
+
+            // temperature control
+            this.usb.Write(String.Format("%T{0};", 1)); // calls for T1 reading
+            ControlTemperature(_temperature1Set, _temperature1);
+
+
         }
         
         // updates state of: fan, solenoid, LED ring.
@@ -322,7 +385,7 @@ namespace CatalystGUI
                         if (int.TryParse(elements[1], out thermocoupleNumber)
                             && int.TryParse(elements[2], out tempCelsius))
                         {
-                            _temperature1 = tempCelsius;   
+                            Temperature1 = tempCelsius;   
                         }
 
                         break;
