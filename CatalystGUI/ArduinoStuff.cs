@@ -28,7 +28,7 @@ namespace CatalystGUI
         #region Misc fields
         const int MAX_TEMP = 220; // limit on how much you can set temp
         public const int BAUD_RATE = 115200;
-        public const int FAST_TIMER_TIMESPAN = 100; // 10 Hz
+        public const int FAST_TIMER_TIMESPAN = 125; // 8 Hz
         public const int SLOW_TIMER_TIMESPAN = 511; // 2 Hz
         SerialPort usb;
         Dispatcher UIDispatcher;
@@ -181,9 +181,7 @@ namespace CatalystGUI
         
         #endregion
 
-        // to do: make UI elements for items in digital map - Solenoid, FanOnOff , LEDring
-        // also, code up the outgoig queue in timers
-
+        // Constructor
         public ArduinoStuff(Dispatcher UIDispatcher)
         {
             this.UIDispatcher = UIDispatcher;
@@ -243,22 +241,25 @@ namespace CatalystGUI
         {
             if (motorNameMap.TryGetValue(motorName, out int motor))
             {   // if motor name exists, add to outgoing queue
-                serialOutgoingQueue.Enqueue(String.Format("%M{0},{1},", motor, steps)); 
+                serialOutgoingQueue.Enqueue(String.Format("%M{0},{1};", motor, steps)); 
             }
         }
 
-        void ControlTemperature(int T_Set, int T_Actual) //if controlling more than 1, this needs to b redone
+        void ControlTemperature(int tempSet, int tempActual) //if controlling more than 1, this needs to b redone
         {
-            int delta = T_Set - T_Actual;
-            
-            if (delta > 0)
-            {   // too cold
-                int signal = delta > 5 ? 255 : 255 * delta / 6; // slow it down when it gets within 5 deg C
-                this.usb.Write(String.Format("%H0,{0};", signal));
-            }
-            else
-            {   // too hot -> off
-                this.usb.Write(String.Format("%H0,{0};", 0));
+            if (tempSet != 0)
+            {
+                int delta = tempSet - tempActual;
+
+                if (delta > 0)
+                {   // too cold
+                    int signal = delta > 5 ? 255 : 255 * delta / 6; // slow it down when it gets within 5 deg C
+                    this.usb.Write(String.Format("%H0,{0};", signal));
+                }
+                else
+                {   // too hot -> off
+                    this.usb.Write(String.Format("%H0,{0};", 0));
+                } 
             }
         }
 
@@ -266,17 +267,17 @@ namespace CatalystGUI
         {
             if (controlNeedleBool)
             {
-                int error = Potentiometer - NeedlePositionSet;
+                int error = NeedlePositionSet - Potentiometer;
                 const int steps = 10;  // arbitrary, make it enough to last through a Fast_Loop cycle
                 const int tolerance = 20; // +/- microns to call it good enough
 
-                if (error > 0 && Math.Abs(error) > tolerance) // needs to decrease
-                {
-                    MoveStepper("NeedlePositionMotor", -steps);
-                }
-                else if (error < 0 && Math.Abs(error) > tolerance) // needs to increase
+                if (error > tolerance) // needs to increase
                 {
                     MoveStepper("NeedlePositionMotor", steps);
+                }
+                else if (error < -tolerance) // needs to decrease
+                {
+                    MoveStepper("NeedlePositionMotor", -steps);
                 }
                 else
                 {
@@ -291,17 +292,17 @@ namespace CatalystGUI
         {
             if (obj.controlPressureBool)
             {
-                float error = obj.Value - obj.SetPoint;
+                float error = obj.SetPoint - obj.Value;
                 const int steps = 10;
                 const float tolerance = 0.05f; // psi tolerance
 
-                if (error > 0 && Math.Abs(error) > tolerance) // needs to decrease
+                if (error > tolerance) // needs to increase
                 {
-                    MoveStepper(obj.DisplayName, steps); // -steps increases pressure
+                    MoveStepper(obj.DisplayName, -steps); // -steps increases pressure
                 }
-                else if (error < 0 && Math.Abs(error) > tolerance) // needs to increase
+                else if (error < -tolerance) // needs to decrease
                 {
-                    MoveStepper(obj.DisplayName, -steps);
+                    MoveStepper(obj.DisplayName, steps);
                 }
                 else
                 {
@@ -334,11 +335,11 @@ namespace CatalystGUI
                 this.usb.Write(String.Format("%C{0};", ch));
             }
 
-            if (this.usb.BytesToWrite > 60) return; // to prevent buffer overflow (64 bytes RX buffer on MEGA)
+            //if (this.usb.BytesToWrite > 128) return; // to prevent buffer overflow (64 bytes RX buffer on MEGA)
 
             // temperature control
             this.usb.Write(String.Format("%T{0};", 1)); // calls for T1 reading
-            ControlTemperature(_temperature1Set, _temperature1);
+            ControlTemperature(Temperature1Set, Temperature1);
 
             // needle control
             ControlNeedlePosition();
@@ -394,7 +395,7 @@ namespace CatalystGUI
                 string[] elements = this.serialIncomingQueue.Dequeue().Split(',');
 
                 // elements[0] possibilities are: A (analog pin reading), D (digital pin reading)
-                switch ((elements[0])[0])
+                switch ((elements[0])[0]) // last [0] is to switch to char like charAt(0)
                 {
                     case 'A': // analog reads FROM ARDUINO'S BUILT IN ADC
                     {

@@ -10,7 +10,7 @@ namespace CatalystGUI
 
         float[] valuesArray; // pressure in whatever units added in array to take moving average
         int i;
-        const int ARRAY_SIZE = 5; // # of readings do moving average
+        const int ARRAY_SIZE = 6; // # of readings do moving average
         public float Value
         {
             get

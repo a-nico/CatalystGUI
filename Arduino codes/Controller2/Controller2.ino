@@ -9,7 +9,7 @@
 // 52 for CLK (SCK - serial clock)
 #define CS   48 // chip select pin (don't use 51, won't work)
 MAX31855 tc = MAX31855(CS); // thermocouple object ref
-ADS1115 ads = ADS1115(475); // ADC object: possible sample rates: 860 475 250 128
+ADS1115 ads = ADS1115(250); // ADC object: possible sample rates: 860 475 250 128
 
 // Stepper Stuff
 #define numOfMotors 4
