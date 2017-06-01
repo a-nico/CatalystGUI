@@ -194,7 +194,11 @@ namespace CatalystGUI
 
         private void NeedleStop_Click(object sender, RoutedEventArgs e)
         {
-            this.arduinoStuff?.MoveStepper("NeedlePositionMotor", 0);
+            if (arduinoStuff != null)
+            {
+                this.arduinoStuff.controlNeedleBool = false;
+                this.arduinoStuff.MoveStepper("NeedlePositionMotor", 0);
+            }
         }
 
         // ITEMS CONTROL (PRESSURES)
@@ -221,7 +225,12 @@ namespace CatalystGUI
         {
             Button button = (Button)sender;
             AnalogValue context = (AnalogValue)button.DataContext;
-            this.arduinoStuff?.MoveStepper(context.DisplayName, 0);
+            if (this.arduinoStuff != null)
+            {
+                context.controlPressureBool = false; // stop trying to control it
+                this.arduinoStuff?.MoveStepper(context.DisplayName, 0);
+
+            }
         }
 
         // TEMPERATURE

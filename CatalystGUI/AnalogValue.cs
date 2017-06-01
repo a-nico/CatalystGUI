@@ -32,6 +32,21 @@ namespace CatalystGUI
                 NotifyPropertyChanged("Value"); 
             }
         }
+        public bool controlPressureBool;
+        float _setPoint;
+        public float SetPoint
+        {
+            get
+            {
+                return _setPoint;
+            }
+            set
+            {
+                _setPoint = value;
+                controlPressureBool = true;
+            }
+        }
+
 
         public AnalogValue(string DisplayName, int Pin)
         {

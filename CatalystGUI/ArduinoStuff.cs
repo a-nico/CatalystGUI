@@ -28,8 +28,8 @@ namespace CatalystGUI
         #region Misc fields
         const int MAX_TEMP = 220; // limit on how much you can set temp
         public const int BAUD_RATE = 115200;
-        public const int FAST_TIMER_TIMESPAN = 200; // 5 Hz
-        public const int SLOW_TIMER_TIMESPAN = 500; // 2 Hz
+        public const int FAST_TIMER_TIMESPAN = 100; // 10 Hz
+        public const int SLOW_TIMER_TIMESPAN = 511; // 2 Hz
         SerialPort usb;
         Dispatcher UIDispatcher;
         DispatcherTimer slowTimer; // for requesting  solenoid, fan, LED ring, moving motors
@@ -42,7 +42,7 @@ namespace CatalystGUI
 
         #region  Properties for Control/UI
         public bool SIunits { get; set; } // true = SI (kPa, microns), false = standard (psi, thou)
-         
+
         int _temperature1;
         public int Temperature1
         {
@@ -66,7 +66,6 @@ namespace CatalystGUI
             }
             set
             {
-                
                 if (value > MAX_TEMP) // max it out at 220 for now
                 {
                     _temperature1Set = MAX_TEMP;
@@ -79,13 +78,12 @@ namespace CatalystGUI
                 {
                     _temperature1Set = value;
                 }
-
                 NotifyPropertyChanged("Temperature1Set");
             }
         }
 
         int _potentiometer;
-        public int Potentiometer // maybe change it to Needle Position or sm
+        public int Potentiometer // actually returns needle position in microns
         {
             get
             {
@@ -95,9 +93,23 @@ namespace CatalystGUI
             {
                 _potentiometer = value;
                 NotifyPropertyChanged("Potentiometer");
-
             }
         }
+
+        public bool controlNeedleBool;  // makes it stop controlling by "Stop" button on UI
+        int _needlePositionSet;
+        public int NeedlePositionSet
+        {
+            get
+            {
+                return _needlePositionSet;
+            }
+            set
+            {
+                _needlePositionSet = value;
+                controlNeedleBool = true;
+            }
+        } // set only by UI
 
         public bool LEDring // true = on
         {
@@ -181,7 +193,7 @@ namespace CatalystGUI
             string liquidPressure = "Liq p";
             string needlePressure = "Ndl p";
 
-            // dictionary
+            // dictionary - names of motors
             motorNameMap = new Dictionary<string, int>(); // <name, motor # in .ino code>
             motorNameMap.Add("NeedlePositionMotor", 0);
             motorNameMap.Add(liquidPressure, 1);
@@ -232,11 +244,10 @@ namespace CatalystGUI
             if (motorNameMap.TryGetValue(motorName, out int motor))
             {   // if motor name exists, add to outgoing queue
                 serialOutgoingQueue.Enqueue(String.Format("%M{0},{1},", motor, steps)); 
-
             }
         }
 
-        public void ControlTemperature(int T_Set, int T_Actual) //if controlling more than 1, this needs to b redone
+        void ControlTemperature(int T_Set, int T_Actual) //if controlling more than 1, this needs to b redone
         {
             int delta = T_Set - T_Actual;
             
@@ -246,10 +257,61 @@ namespace CatalystGUI
                 this.usb.Write(String.Format("%H0,{0};", signal));
             }
             else
-            { // too hot -> off
+            {   // too hot -> off
                 this.usb.Write(String.Format("%H0,{0};", 0));
             }
         }
+
+        void ControlNeedlePosition()
+        {
+            if (controlNeedleBool)
+            {
+                int error = Potentiometer - NeedlePositionSet;
+                const int steps = 10;  // arbitrary, make it enough to last through a Fast_Loop cycle
+                const int tolerance = 20; // +/- microns to call it good enough
+
+                if (error > 0 && Math.Abs(error) > tolerance) // needs to decrease
+                {
+                    MoveStepper("NeedlePositionMotor", -steps);
+                }
+                else if (error < 0 && Math.Abs(error) > tolerance) // needs to increase
+                {
+                    MoveStepper("NeedlePositionMotor", steps);
+                }
+                else
+                {
+                    MoveStepper("NeedlePositionMotor", 0);
+                    controlNeedleBool = false;
+                }
+            }
+        }
+
+        // take in the motor name from button -> object.DisplayName
+        void ControlPressureRegulator(AnalogValue obj)
+        {
+            if (obj.controlPressureBool)
+            {
+                float error = obj.Value - obj.SetPoint;
+                const int steps = 10;
+                const float tolerance = 0.05f; // psi tolerance
+
+                if (error > 0 && Math.Abs(error) > tolerance) // needs to decrease
+                {
+                    MoveStepper(obj.DisplayName, steps); // -steps increases pressure
+                }
+                else if (error < 0 && Math.Abs(error) > tolerance) // needs to increase
+                {
+                    MoveStepper(obj.DisplayName, -steps);
+                }
+                else
+                {
+                    MoveStepper(obj.DisplayName, 0);
+                    obj.controlPressureBool = false;
+                } 
+            }
+
+        }
+
         #endregion
 
         #region Timer Stuff - Serial Outgoing
@@ -272,10 +334,23 @@ namespace CatalystGUI
                 this.usb.Write(String.Format("%C{0};", ch));
             }
 
+            if (this.usb.BytesToWrite > 60) return; // to prevent buffer overflow (64 bytes RX buffer on MEGA)
+
             // temperature control
             this.usb.Write(String.Format("%T{0};", 1)); // calls for T1 reading
             ControlTemperature(_temperature1Set, _temperature1);
+
+            // needle control
+            ControlNeedlePosition();
+
+            // pressure regulator control
+            foreach (AnalogValue p in Pressures)
+            {
+                ControlPressureRegulator(p);
+            }
+
             
+
         }
         
         // updates state of: fan, solenoid, LED ring.

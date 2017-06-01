@@ -69,7 +69,7 @@
                 <TextBlock Text="Ndl x" Width="50"/>
                 <TextBlock  Text="{Binding Potentiometer}" MinWidth="50"/>
                 <Button Click="NeedlePositionMinus_Click" Content="-" Width="20"/>
-                <TextBox Text="set" MinWidth="40"/>
+                <TextBox Text="{Binding NeedlePositionSet}" MinWidth="40"/>
                 <Button Click="NeedlePositionPlus_Click" Content="+" Width="20"/>
                 <Button Click="NeedleStop_Click" Content="Stop"/>
             </StackPanel>
@@ -89,7 +89,7 @@
                             <TextBlock Text="{Binding DisplayName}" Width="60"/>
                             <TextBlock  Text="{Binding Value}" MinWidth="40"/>
                             <Button Click="PressureMinus_Click" Content="-" Width="20"/>
-                            <TextBox Text="set" MinWidth="40"/>
+                            <TextBox Text="{Binding SetPoint}" MinWidth="40"/>
                             <Button Click="PressurePlus_Click" Content="+" Width="20"/>
                             <Button Click="MotorStop_Click" Content="Stop"/>
                         </StackPanel>
