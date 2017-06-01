@@ -43,6 +43,7 @@ void setup()
   pinMode(solenoidPin, OUTPUT);
   pinMode(LEDringPin, OUTPUT);
   pinMode(fanOnOffPin, OUTPUT);
+  pinMode(CS, OUTPUT);
 
   for (int motor = 0; motor < numOfMotors; motor++) 
   {
@@ -63,6 +64,8 @@ void setup()
   
   Serial.begin(115200); // max baud rate
   ads.begin();
+
+  while(!Serial.available()); // wait for UI to start up
   
 }
 
@@ -81,7 +84,6 @@ if (tc.readCelsius() > 45) analogWrite(heaterMOSFET, 0);
 
 // update ADC readings
 ads.updateAll(ADCdata); // updates the array, non-blocking 
-
 
 }
 
@@ -152,6 +154,7 @@ void doTasks(char command, int values[])
   case 'A': // reads analog pin (e.g.  %A0;)
   {// has only one value (value[0]) which is the pin to read
     Serial.print( "A," + (String)values[0] + "," + analogRead(values[0]) + ";");
+    Serial.print( strcat();
   }
     break;
     
