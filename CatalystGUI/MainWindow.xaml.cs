@@ -221,7 +221,7 @@ namespace CatalystGUI
         }
 
         // sets that motor to 0 steps - this is just for pressure regulator motors
-        private void MotorStop_Click(object sender, RoutedEventArgs e)
+        private void RegulatorMotorStop_Click(object sender, RoutedEventArgs e)
         {
             Button button = (Button)sender;
             AnalogValue context = (AnalogValue)button.DataContext;
@@ -232,6 +232,13 @@ namespace CatalystGUI
 
             }
         }
+
+        // Solenoids
+        private void Solenoid_Click(object sender, RoutedEventArgs e)
+        {
+
+        }
+        
 
         // TEMPERATURE
         private void Temp1Plus_Click(object sender, RoutedEventArgs e)

@@ -26,7 +26,7 @@ namespace CatalystGUI
         #endregion
 
         #region Misc fields
-        const int MAX_TEMP = 220; // limit on how much you can set temp
+        const int MAX_TEMP = 300; // limit on how much you can set temp
         public const int BAUD_RATE = 115200;
         public const int FAST_TIMER_TIMESPAN = 125; // 8 Hz
         public const int SLOW_TIMER_TIMESPAN = 511; // 2 Hz
@@ -200,9 +200,9 @@ namespace CatalystGUI
 
             // make AnalogValue objects that map to pressure
             Pressures = new List<AnalogValue>();
-            Pressures.Add(new AnalogValue(mainPressure, 0));
-            Pressures.Add(new AnalogValue(liquidPressure, 1));
-            Pressures.Add(new AnalogValue(needlePressure, 2));
+            Pressures.Add(new AnalogValue(mainPressure, 0, 8));
+            Pressures.Add(new AnalogValue(liquidPressure, 1, 9));
+            Pressures.Add(new AnalogValue(needlePressure, 2, 10));
             NotifyPropertyChanged("Pressures"); // is this necessary?
 
             // arrays
@@ -373,8 +373,9 @@ namespace CatalystGUI
             while (null != this.incomingSerialBuffer && "" != this.incomingSerialBuffer)
             {
                 if (incomingSerialBuffer[0] == ';')
-                {
-                    this.serialIncomingQueue.Enqueue(this.tokenBuffer); // buffer is a complete command, add to queue
+                {   // buffer is a complete command, add to queue
+                    this.serialIncomingQueue.Enqueue(this.tokenBuffer);
+                    //Console.WriteLine(this.tokenBuffer); // for debugging
                     this.tokenBuffer = String.Empty; // clear the buffer for next token
                     this.incomingSerialBuffer = this.incomingSerialBuffer.Remove(0, 1); // throw away the ";"
                 }
@@ -394,94 +395,101 @@ namespace CatalystGUI
             {
                 string[] elements = this.serialIncomingQueue.Dequeue().Split(',');
 
-                // elements[0] possibilities are: A (analog pin reading), D (digital pin reading)
-                switch ((elements[0])[0]) // last [0] is to switch to char like charAt(0)
+                try // gotta try because sometimes I get index out of range exception (no idea why)
                 {
-                    case 'A': // analog reads FROM ARDUINO'S BUILT IN ADC
+                    // elements[0] possibilities are: A (analog pin reading), D (digital pin reading)
+                    switch ((elements[0])[0]) // last [0] is to switch to char like charAt(0)
                     {
-                        // should split into [A], [pin], [value]
-                        int pin; int value; // placeholders
-
-                        if (int.TryParse(elements[1], out pin)
-                            && int.TryParse(elements[2], out value))
-                        {
-                            // update the analogValues array with this new data
-                            this.analogValues[pin] = value;
-
-                            //// if pressure sensor is attached to this pin, update Pressures collection elements
-                            //foreach (var p in this.Pressures)
-                            //{ // inefficient but I don't know how to map "name" to Property.
-                            //    if (p.Pin == pin)
-                            //    {
-                            //        p.Value = ConvertRawToPressure(value);
-                            //    }
-                            //}
-                        }
-                        break;
-                    }
-
-                    case 'D': // digital reads
-                    {
-                        // should split into [D], [pin], [value (0/1)]
-                        int pin; int value; // placeholders
-
-                        if (int.TryParse(elements[1], out pin)
-                            && int.TryParse(elements[2], out value))
-                        {
-                            // update digitalValues array that holds latest data
-                            this.digitalValues[pin] = value;
-
-                        }
-
-                        break;
-                    }
-
-                    case 'C': // from ADS1115
-                    {
-                        // should split into [C], [channel/pin], [value]
-                        // arduino guarantees that 0 <= channel/pin <= 3
-                        int pin; int value; // placeholders
-
-                        if (int.TryParse(elements[1], out pin)
-                            && int.TryParse(elements[2], out value))
-                        {
-                            // channel/pin 3 is the potentiometer
-                            if (pin == 3)
+                        case 'A': // analog reads FROM ARDUINO'S BUILT IN ADC
                             {
-                                Potentiometer = value;
-                            }
-                            else // it's a pressure, figure out which one and update the object's Value property
-                            {
-                                foreach (var p in Pressures)
+                                // should split into [A], [pin], [value]
+                                int pin; int value; // placeholders
+
+                                if (int.TryParse(elements[1], out pin)
+                                    && int.TryParse(elements[2], out value))
                                 {
-                                    if (p.Pin == pin)
-                                    {
-                                            p.Value = ConvertRawToPressure(value);
-                                        }
+                                    // update the analogValues array with this new data
+                                    this.analogValues[pin] = value;
+
+                                    //// if pressure sensor is attached to this pin, update Pressures collection elements
+                                    //foreach (var p in this.Pressures)
+                                    //{ // inefficient but I don't know how to map "name" to Property.
+                                    //    if (p.Pin == pin)
+                                    //    {
+                                    //        p.Value = ConvertRawToPressure(value);
+                                    //    }
+                                    //}
                                 }
+                                break;
                             }
-                        }
 
-                        break;
+                        case 'D': // digital reads
+                            {
+                                // should split into [D], [pin], [value (0/1)]
+                                int pin; int value; // placeholders
+
+                                if (int.TryParse(elements[1], out pin)
+                                    && int.TryParse(elements[2], out value))
+                                {
+                                    // update digitalValues array that holds latest data
+                                    this.digitalValues[pin] = value;
+
+                                }
+
+                                break;
+                            }
+
+                        case 'C': // from ADS1115
+                            {
+                                // should split into [C], [channel/pin], [value]
+                                // arduino guarantees that 0 <= channel/pin <= 3
+                                int pin; int value; // placeholders
+
+                                if (int.TryParse(elements[1], out pin)
+                                    && int.TryParse(elements[2], out value))
+                                {
+                                    // channel/pin 3 is the potentiometer
+                                    if (pin == 3)
+                                    {
+                                        Potentiometer = value;
+                                    }
+                                    else // it's a pressure, figure out which one and update the object's Value property
+                                    {
+                                        foreach (var p in Pressures)
+                                        {
+                                            if (p.Pin == pin)
+                                            {
+                                                p.Value = ConvertRawToPressure(value);
+                                            }
+                                        }
+                                    }
+                                }
+
+                                break;
+                            }
+
+                        case 'T':
+                            {
+                                // T,1,25; means TC#1 is at 25 Celsius
+                                int thermocoupleNumber; int tempCelsius; // placeholders
+
+                                if (int.TryParse(elements[1], out thermocoupleNumber)
+                                    && int.TryParse(elements[2], out tempCelsius))
+                                {
+                                    Temperature1 = tempCelsius;
+                                }
+
+                                break;
+                            }
+
+                        default:
+                            // was some garbage identifier, token is dequeued so don't worry
+                            break;
                     }
-
-                    case 'T':
-                    {
-                        // T,1,25; means TC#1 is at 25 Celsius
-                        int thermocoupleNumber; int tempCelsius; // placeholders
-
-                        if (int.TryParse(elements[1], out thermocoupleNumber)
-                            && int.TryParse(elements[2], out tempCelsius))
-                        {
-                            Temperature1 = tempCelsius;   
-                        }
-
-                        break;
-                    }
-
-                    default:
-                        // was some garbage identifier, token is dequeued so don't worry
-                        break;
+                }
+                catch (IndexOutOfRangeException ex)
+                {
+                    System.Windows.MessageBox.Show("IndexOutOfRangeException in switch case: " + ex.Message + "\n \"elements[]\" length: " + elements.Length);
                 }
             }
         }

@@ -30,6 +30,7 @@ int idx  = 0; // buffer index
 int valuesArrayIndex = 0;
 int valuesArray[5] = {}; // numbers to be passed to functions (e.g. sensor #, fan percent, temperature, pressure)
 int16_t ADCdata[4] = {}; // data from ADS1115, signed 16 bit
+char serialOutBuffer[20]; // stores outgoing tokens from sprintf
 
 
 #define heaterMOSFET 7
@@ -80,7 +81,7 @@ for (int m = 0; m < numOfMotors; m++)
 }
 
 // safe heater
-if (tc.readCelsius() > 45) analogWrite(heaterMOSFET, 0);
+if (tc.readCelsius() > 270) analogWrite(heaterMOSFET, 0);
 
 // update ADC readings
 ads.updateAll(ADCdata); // updates the array, non-blocking 
@@ -153,10 +154,14 @@ void doTasks(char command, int values[])
  {
   case 'A': // reads analog pin (e.g.  %A0;)
   {// has only one value (value[0]) which is the pin to read
-    Serial.print( "A," + (String)values[0] + "," + analogRead(values[0]) + ";");
-    Serial.print( strcat();
-  }
+    //Serial.print( "A," + (String)values[0] + "," + analogRead(values[0]) + ";");  // this hogs/fragments memory apparently
+    int result = sprintf(serialOutBuffer, "A,%d,%d;", values[0], analogRead(values[0]));
+    if (result > 0) 
+    {
+      Serial.print(serialOutBuffer);
+    }
     break;
+  }
     
   case 'F': // sets fan speed percent (e.g.  %F90; sets fan to 90%)
     if (values[0] > 100) values[0] = 100;
@@ -183,24 +188,51 @@ void doTasks(char command, int values[])
     break;
 
   case 'R': // reads digital pin. %R7; reads state of digital pin7, returns 1 or 0 for HIGH/LOW
-    Serial.print( "D," + (String)values[0] + "," + (String)digitalRead(values[0]) + ";");
-
+    //Serial.print( "D," + (String)values[0] + "," + (String)digitalRead(values[0]) + ";");
+  {
+    int result = sprintf(serialOutBuffer, "D,%d,%d;", values[0], digitalRead(values[0]));
+    if (result > 0)
+    {
+      Serial.print(serialOutBuffer);
+    }
+    break;
+  }
   case 'T': // T0; returns internal temp, %T1; returns first thermocouple
+  {
+    int temperature;
     if (values[0] == 0) 
     { // give internal temp
-      Serial.print("T," + (String)values[0] + "," + (String)((int)tc.readInternal()) + ";");
+      //Serial.print("T," + (String)values[0] + "," + (String)((int)tc.readInternal()) + ";");
+      temperature = (int)tc.readInternal();
     } 
     else if (values[0] == 1) 
     {
-      Serial.print("T," + (String)values[0] + "," + (String)tc.readCelsius() + ";");
+      //Serial.print("T," + (String)values[0] + "," + (String)tc.readCelsius() + ";");
+      temperature = tc.readCelsius();
+    }
+    else
+    {
+      break;
+    }
+    int result = sprintf(serialOutBuffer, "T,%d,%d;", values[0], temperature);
+    if (result > 0)
+    {
+      Serial.print(serialOutBuffer);
     }
     break;
+  }
+
     
   case 'C': // ADS converter readings from global array: %C1; returns ADCdata[1]
   {
     int ch = values[0];
     if (ch > 3 || ch < 0) break;
-    Serial.print("C," + (String)ch + "," + (String)ADCdata[ch] + ";");
+    //Serial.print("C," + (String)ch + "," + (String)ADCdata[ch] + ";");
+    int result = sprintf(serialOutBuffer, "C,%d,%d;", ch, ADCdata[ch]);
+    if (result > 0)
+    {
+      Serial.print(serialOutBuffer);
+    }
     break;
   }
 

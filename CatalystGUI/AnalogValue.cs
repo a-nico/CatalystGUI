@@ -7,6 +7,7 @@ namespace CatalystGUI
         public string DisplayName { get; set; } // e.g. "Ndl P"
 
         public int Pin { get; set; } // pin or "channel" on ADS1115
+        public int SolenoidPin { get; set; } // digital pin that controls solenoid MOSFET gate
 
         float[] valuesArray; // pressure in whatever units added in array to take moving average
         int i;
@@ -47,11 +48,12 @@ namespace CatalystGUI
             }
         }
 
-
-        public AnalogValue(string DisplayName, int Pin)
+        // constructor
+        public AnalogValue(string DisplayName, int Pin, int SolenoidPin)
         {
             this.DisplayName = DisplayName;
             this.Pin = Pin;
+            this.SolenoidPin = SolenoidPin;
 
             valuesArray = new float[ARRAY_SIZE];
             i = 0;
