@@ -161,7 +161,7 @@ namespace CatalystGUI
         // FAN
         private void FanMinus_Click(object sender, RoutedEventArgs e)
         {
-            if (this.arduinoStuff != null && arduinoStuff.Fan <= 20)
+            if (this.arduinoStuff != null && arduinoStuff.Fan <= ArduinoStuff.FAN_TRESHOLD)
             {
                 arduinoStuff.Fan = 0;
             }
@@ -236,7 +236,23 @@ namespace CatalystGUI
         // Solenoids
         private void Solenoid_Click(object sender, RoutedEventArgs e)
         {
+            Button button = (Button)sender;
+            AnalogValue context = (AnalogValue)button.DataContext;
 
+            // now toggle the solenoid
+            if (this.arduinoStuff != null)
+            {
+                if (!this.arduinoStuff.DigitalRead(context.SolenoidPin))
+                {   // solenoid is off
+                    this.arduinoStuff.DigitalWrite(context.SolenoidPin, 1); // switch it on
+                    button.Content = "is ON"; // label button as "ON"
+                }
+                else
+                {
+                    this.arduinoStuff.DigitalWrite(context.SolenoidPin, 0); // switch it off
+                    button.Content = "is OFF"; // label button as "ON"
+                }
+            }
         }
         
 
@@ -302,18 +318,18 @@ namespace CatalystGUI
                     this.arduinoStuff.LEDring = !arduinoStuff.LEDring;
                 }
                 
-                // solenoid ON/OFF
-                if (command.ToLower().StartsWith("sol") && this.arduinoStuff != null)
-                {
-                    if (command.Contains("on"))
-                    {   // have to explicitly turn it on
-                        this.arduinoStuff.Solenoid = true;
-                    }
-                    else
-                    {   // off by default (for safety)
-                        this.arduinoStuff.Solenoid = false;
-                    }
-                }
+                //// solenoid ON/OFF - no longer used since I made buttons
+                //if (command.ToLower().StartsWith("sol") && this.arduinoStuff != null)
+                //{
+                //    if (command.Contains("on"))
+                //    {   // have to explicitly turn it on
+                //        this.arduinoStuff.Solenoid = true;
+                //    }
+                //    else
+                //    {   // off by default (for safety)
+                //        this.arduinoStuff.Solenoid = false;
+                //    }
+                //}
 
             }
         }

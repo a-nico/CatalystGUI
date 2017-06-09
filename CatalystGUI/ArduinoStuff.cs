@@ -26,10 +26,12 @@ namespace CatalystGUI
         #endregion
 
         #region Misc fields
-        const int MAX_TEMP = 300; // limit on how much you can set temp
+        const int MAX_TEMP = 270; // limit on how much you can set temp
         public const int BAUD_RATE = 115200;
         public const int FAST_TIMER_TIMESPAN = 125; // 8 Hz
         public const int SLOW_TIMER_TIMESPAN = 511; // 2 Hz
+        public const int FAN_TRESHOLD = 50; // below this it's all the same for some reason
+
         SerialPort usb;
         Dispatcher UIDispatcher;
         DispatcherTimer slowTimer; // for requesting  solenoid, fan, LED ring, moving motors
@@ -66,7 +68,7 @@ namespace CatalystGUI
             }
             set
             {
-                if (value > MAX_TEMP) // max it out at 220 for now
+                if (value > MAX_TEMP)
                 {
                     _temperature1Set = MAX_TEMP;
                 }
@@ -119,21 +121,23 @@ namespace CatalystGUI
             }
             set
             {
-                this.serialOutgoingQueue.Enqueue(String.Format("%W{0},{1};", LED_PIN, value ? 1 : 0));
+                DigitalWrite(LED_PIN, value ? 1 : 0);
+                //this.serialOutgoingQueue.Enqueue(String.Format("%W{0},{1};", LED_PIN, value ? 1 : 0));
             }
         }
 
-        public bool Solenoid // true = current through solenoid (valve open)
-        {
-            get
-            {
-                return digitalValues[SOLENOID_PIN] != 0;
-            }
-            set
-            {   // true does digitalWrite(SOLENOID_PIN, HIGH);
-                this.serialOutgoingQueue.Enqueue(String.Format("%W{0},{1};", SOLENOID_PIN, value ? 1 : 0));
-            }
-        }
+        //public bool Solenoid // true = current through solenoid (valve open)
+        //{
+        //    get
+        //    {
+        //        return digitalValues[SOLENOID_PIN] != 0;
+        //    }
+        //    set
+        //    {   // true does digitalWrite(SOLENOID_PIN, HIGH);
+
+        //        this.serialOutgoingQueue.Enqueue(String.Format("%W{0},{1};", SOLENOID_PIN, value ? 1 : 0));
+        //    }
+        //}
 
         int _fan;
 
@@ -148,17 +152,20 @@ namespace CatalystGUI
                 if (value == 0)
                 {   // just switch the MOSFET off
                     _fan = 0;
-                    this.serialOutgoingQueue.Enqueue(String.Format("%W{0},{1};", FAN_PIN, _fan));
+                    DigitalWrite(FAN_PIN, 0);
+                    //this.serialOutgoingQueue.Enqueue(String.Format("%W{0},{1};", FAN_PIN, _fan));
                     goto Notify;
                 }
 
                 if (digitalValues[FAN_PIN] == 0)
                 {   // getting here means value != 0, but fan shows as OFF
                     // switch on the fan MOSFET
-                    this.serialOutgoingQueue.Enqueue(String.Format("%W{0},{1};", FAN_PIN, 1));
+                    DigitalWrite(FAN_PIN, 1);
+                    //this.serialOutgoingQueue.Enqueue(String.Format("%W{0},{1};", FAN_PIN, 1));
                 }
 
-                if (value >= 20 && value < 100)
+
+                if (value >= FAN_TRESHOLD && value < 100)
                 {
                     _fan = value;
                 }
@@ -167,8 +174,8 @@ namespace CatalystGUI
                     _fan = 100;
                 }
                 else
-                {   // anything 1-20 sets fan to 20. To set to zero, have to enter "0"
-                    _fan = 20;
+                {   // anything 1 to FAN_TRESHOLD sets fan to FAN_TRESHOLD. To set to zero, have to enter "0"
+                    _fan = FAN_TRESHOLD;
                 }
                 this.serialOutgoingQueue.Enqueue(String.Format("%F{0};", _fan));
 
@@ -243,6 +250,20 @@ namespace CatalystGUI
             {   // if motor name exists, add to outgoing queue
                 serialOutgoingQueue.Enqueue(String.Format("%M{0},{1};", motor, steps)); 
             }
+        }
+
+        // Digital Pins
+        public void DigitalWrite(int pin, int value)
+        {
+            if (value != 0) value = 1; // to avoid bugs
+            this.serialOutgoingQueue.Enqueue(String.Format("%W{0},{1};", pin, value));
+
+        }
+
+        // reads from array, so it's not necessarily up-to-date. Have to request updates in timer method
+        public bool DigitalRead(int pin)
+        {
+            return this.digitalValues[pin] == 1; // true means HIGH pin
         }
 
         void ControlTemperature(int tempSet, int tempActual) //if controlling more than 1, this needs to b redone
@@ -353,13 +374,19 @@ namespace CatalystGUI
             
 
         }
-        
-        // updates state of: fan, solenoid, LED ring.
+
+        // updates state of: fan, solenoids, LED ring.
         private void SlowLoop_Tick(object sender, EventArgs e)
         {   
             this.usb.Write(String.Format("%R{0};", LED_PIN));
-            this.usb.Write(String.Format("%R{0};", SOLENOID_PIN));
             this.usb.Write(String.Format("%R{0};", FAN_PIN));
+
+            // check solenoids
+            foreach (var p in Pressures)
+            {
+                this.usb.Write(String.Format("%R{0};", p.SolenoidPin));
+            }
+
         }
         #endregion
 

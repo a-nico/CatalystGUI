@@ -34,14 +34,19 @@ char serialOutBuffer[20]; // stores outgoing tokens from sprintf
 
 
 #define heaterMOSFET 7
-#define solenoidPin 4
+#define mainSolenoidPin 8
+#define liqSolenoidPin 9
+#define ndlSolenoidPin 10
 #define fanOnOffPin 5
 #define LEDringPin 6
 
 void setup() 
 {
   pinMode(heaterMOSFET, OUTPUT);
-  pinMode(solenoidPin, OUTPUT);
+  pinMode(liqSolenoidPin, OUTPUT);
+  pinMode(ndlSolenoidPin, OUTPUT);
+  pinMode(mainSolenoidPin, OUTPUT);
+  
   pinMode(LEDringPin, OUTPUT);
   pinMode(fanOnOffPin, OUTPUT);
   pinMode(CS, OUTPUT);

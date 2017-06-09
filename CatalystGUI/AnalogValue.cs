@@ -7,7 +7,7 @@ namespace CatalystGUI
         public string DisplayName { get; set; } // e.g. "Ndl P"
 
         public int Pin { get; set; } // pin or "channel" on ADS1115
-        public int SolenoidPin { get; set; } // digital pin that controls solenoid MOSFET gate
+        public int SolenoidPin { get; private set; } // digital pin that controls solenoid MOSFET gate
 
         float[] valuesArray; // pressure in whatever units added in array to take moving average
         int i;

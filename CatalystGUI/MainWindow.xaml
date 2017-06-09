@@ -92,7 +92,7 @@
                             <TextBox Text="{Binding SetPoint}" MinWidth="40"/>
                             <Button Click="PressurePlus_Click" Content="+" Width="20"/>
                             <Button Click="RegulatorMotorStop_Click" Content="Freeze" Width="50"/>
-                            <Button Click="Solenoid_Click" Content="I/O" Width="50"/>
+                            <Button Click="Solenoid_Click" Content="is OFF" Width="50"/>
                         </StackPanel>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
